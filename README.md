@@ -1,0 +1,2 @@
+# Kotoha
+A Discord bot.
