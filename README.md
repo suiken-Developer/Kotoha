@@ -1,2 +1,3 @@
 # Akane
-A Discord bot.
+A Discord bot.  
+Status: https://status.herebots.ml
