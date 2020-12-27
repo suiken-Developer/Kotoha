@@ -1,2 +1,2 @@
-# Kotoha
+# Akane
 A Discord bot.
