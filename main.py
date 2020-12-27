@@ -10,9 +10,9 @@ import time #Ping
 
 #変数群
 TOKEN = os.getenv("TOKEN") #トークン
-prefix = 't.' #Prefix
-activity = discord.Streaming(name='t.help でヘルプ♪', url="https://www.twitch.tv/discord")
-embed_help = discord.Embed(title="Kotoha コマンドリスト",description="※現在は仮運用中です\nt.neko…にゃーん\nt.dice…サイコロを振るよ\nt.kuji…おみくじをひくよ\nt.search…Googleで検索をするよ（上位3件）\nt.janken…じゃんけんをするよ\nt.ping…BotのPingを取得するよ\nt.kick <ユーザー名>…キックを実行するよ\nt.ban <ユーザー名>…BANを実行するよ\n\n（このBotは半自動です。たまに人が会話します）")
+prefix = 'k.' #Prefix
+activity = discord.Streaming(name='k.help でヘルプ♪', url="https://www.twitch.tv/discord")
+embed_help = discord.Embed(title="Akane コマンドリスト",description="※現在は仮運用中です\nk.neko…にゃーん\nk.dice…サイコロを振るよ\nk.kuji…おみくじをひくよ\nk.search…Googleで検索をするよ（上位3件）\nk.janken…じゃんけんをするよ\nk.ping…BotのPingを取得するよ\nk.kick <ユーザー名>…キックを実行するよ\nk.ban <ユーザー名>…BANを実行するよ\n\n（このBotは半自動です。たまに人が会話します）")
 ModeFlag = 0 #Google検索モードオフ
 
 #接続に必要なオブジェクトを生成
@@ -22,7 +22,7 @@ client = discord.Client()
 @client.event
 async def on_ready():
     # 起動したらターミナルにログイン通知が表示される
-    print('[Kotoha] ログインしました')
+    print('[Akane] ログインしました')
     await client.change_presence(activity=activity)
 
 #メッセージ受信時に動作する処理
