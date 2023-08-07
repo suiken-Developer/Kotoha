@@ -39,19 +39,14 @@
         "usage" : "janken",
         "info": "Akaneとじゃんけんをします。"
     },
-    "kick": {
-        "category": "⭐機能系コマンド",
-        "usage" : "kick <ユーザーをメンションorユーザーID>",
-        "info": "ユーザーのKickをします。（管理者権限で実行必須）"
-    },
-    "ban": {
-        "category": "⭐機能系コマンド",
-        "usage" : "ban <ユーザーをメンションorユーザーID>",
-        "info": "ユーザーのBANをします。（管理者権限で実行必須）"
-    },
     "unban": {
         "category": "⭐機能系コマンド",
         "usage" : "unban <ユーザーをメンションorユーザーID>",
         "info": "ユーザーのBANを解除します。（管理者権限で実行必須）"
-    }
+    },
+    "ytdl: {
+          "category": "⭐機能系コマンド",
+          "usage" : "ytdl <URL>",
+          "info": "YouTube動画のダウンロードリンクを取得します"
+      }
 }
