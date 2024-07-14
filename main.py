@@ -27,14 +27,13 @@ import scratchattach as scratch3
 TOKEN = "TOKEN_HERE"  #トークン
 GOOGLE_API_KEY = "KEY_HERE"
 #ICON = "https://herebots.sui8.repl.co/data/akaneicon.jpg"  #アイコンURL
-OWNER = "ID_HERE"
+OWNER = "(INT) USER_ID_HERE"
+ERROR_LOG = "(INT) CHANNEL_ID_HERE"
 prefix = 'k.'  #Prefix
-Bot_Version = '4.9.0'
+Bot_Version = '4.10.3'
 Voice = 0
 
 # Gemini
-ai_error = "何言うてんのかわからんかったわ！もう一回言うてや！"
-
 text_generation_config = {
     "temperature": 0.9,
     "top_p": 1,
@@ -122,7 +121,7 @@ def add_text_to_image(img, text, font_path, font_size, font_color, height,
   return img
 
 def gpt(text, flag, attachment):
-  global text_model, image_model, ai_error
+  global text_model, image_model
 
   # テキストモード
   if flag == 0:
@@ -132,11 +131,10 @@ def gpt(text, flag, attachment):
       response = chat.send_message(text)
 
     except Exception as e:
-      response = ai_error
-      print(e)
+      return [False, e]
 
     else:
-      response = response.text
+      return [True, response.text]
 
   # 画像モード
   else:
@@ -145,12 +143,10 @@ def gpt(text, flag, attachment):
     response = image_model.generate_content(prompt_parts)
     
     if response._error:
-        response = ai_error
+        return [False, e]
 
     else:
-      response = response.text
-  
-  return response
+      return response.text
 
 
 #起動時に動作する処理
@@ -990,15 +986,16 @@ async def _slash_stop(ctx: SlashContext):
 
 @client.event
 async def on_message(message):
-  global fxblocked, system_prompt, prefix, OWNER, ai_error
+  global client, fxblocked, system_prompt, prefix, OWNER, ERROR_LOG
   
   if message.author.bot or message.mention_everyone:
     return
 
-  if message.content == "せやな":
-    #i = random.choice([0, 1])
-
-    await message.channel.send("<:Seyana:851104856110399488>")
+# オフにする機能実装するまで無効化
+#  if message.content == "せやな":
+#    #i = random.choice([0, 1])
+#
+#    await message.channel.send("<:Seyana:851104856110399488>")
 
   if message.guild:
     if message.channel.name == "akane-talk":
@@ -1012,86 +1009,149 @@ async def on_message(message):
       await message.channel.send(i)
 
     elif message.channel.name == "akane-ai":
-      async with message.channel.typing():
-        # 画像データかどうか（画像は過去ログ使用不可）
-        if message.attachments:
-          flag = 1
-          
-          for attachment in message.attachments:
-            # 対応している画像形式なら処理
-            if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(attachment.url) as resp:
-                        if resp.status != 200:
-                            await message.reply("画像が見れへんわ。もう一度送ってくれる？", mention_author=False)
-                            res = ""
+      if message.content.startswith("//"):
+        pass
 
-                        else:
-                          image_data = await resp.read()
+      else:
+      
+        async with message.channel.typing():
+          # メッセージカウント
+          if message.content == f"{prefix}count":
+            if os.path.isfile(f"data/ai/{message.author.id}.json"):
 
-                          bracket_pattern = re.compile(r'<[^>]+>')
-                          cleaned_text = bracket_pattern.sub('', message.content)
-                          res = gpt(cleaned_text, 1, image_data)
+              with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
+                ai_data = json.load(f)
+
+              print(ai_data[0])
+                
+              await message.reply(f"会話回数は{ai_data[0]}回やで", mention_author=False)
 
             else:
-              await message.reply("画像が読み取れへんわ。ファイルの形式を変えてみてや。", mention_author=False)
-              res = ""
-                        
-        else:
-          # 過去データ読み取り
-          flag = 0
+              await message.reply(f"会話回数は0回やで", mention_author=False)
 
-          with open('aidata.pkl', 'rb') as f:
-            ai_data = pickle.load(f)
+            response = ""
 
-          #print(ai_data)
+          # 会話履歴リセット
+          elif message.content == f"{prefix}clear":
+            if os.path.isfile(f"data/ai/{message.author.id}.json"):
 
-          if str(message.author.id) in ai_data:
-            history = list(ai_data[str(message.author.id)])
+              with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
+                ai_data = json.load(f)
+                
+              count = [int(ai_data[0])]
 
-            if message.content == f"{prefix}clear":
-              ai_data[str(message.author.id)] = []
+              with open(f"data/ai/{message.author.id}.json", 'w', encoding='UTF-8') as f:
+                json.dump(count, f)
+              
+              await message.reply(":white_check_mark: 会話履歴を削除したで", mention_author=False)
+              
+            else:
+              await message.reply("まだ会話したことないで", mention_author=False)
+
+            response = ""
+            
+          # 画像データかどうか（画像は過去ログ使用不可）
+          elif message.attachments:
+            flag = 1
+            
+            for attachment in message.attachments:
+              # 対応している画像形式なら処理
+              if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
+                  async with aiohttp.ClientSession() as session:
+                      async with session.get(attachment.url) as resp:
+                          if resp.status != 200:
+                              await message.reply("画像が見れへんわ。時間を空けてからもう一度送ってくれる？", mention_author=False)
+                              res = ""
+
+                          else:
+                            image_data = await resp.read()
+
+                            bracket_pattern = re.compile(r'<[^>]+>')
+                            cleaned_text = bracket_pattern.sub('', message.content)
+                            res = gpt(cleaned_text, 1, image_data)
+
+              else:
+                await message.reply("画像が読み取れへんわ。ファイルの形式を変えてみてや。", mention_author=False)
+                res = ""
+                          
+          else:
+            # 過去データ読み取り
+            flag = 0
+
+            # 会話したことがあるか
+            if os.path.isfile(f"data/ai/{message.author.id}.json"):
+              
+              with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
+                ai_data = json.load(f)
+
+              if len(ai_data) == 1:
+                history = []
+
+              else:
+                history = list(ai_data[1:])
+                
+              print(history)
+              response = gpt(message.content, 0, history)
+
+            # 会話が初めてならpkl作成＆インストラクション
+            else:
+              ai_data = [0]
               history = []
 
-              with open('aidata.pkl', 'wb') as f:
-                pickle.dump(ai_data, f)
+              with open(f'data/ai/{message.author.id}.json', 'w', encoding='UTF-8') as f:
+                  json.dump(ai_data, f)
+
+              embed = discord.Embed(title="Akane AIチャット",
+                            description="AIチャットのご利用ありがとうございます。",
+                            color=discord.Colour.red())
+              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{prefix}count`と送信して会話回数の表示", inline=False)
+              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`#akane-ai`チャンネル内で`{prefix}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
+              embed.set_footer(text="不具合等連絡先: @bz6")
+              await message.reply(embed=embed)
+              response = gpt(message.content, 0, history)
+
+
+          # 履歴保存
+          if len(response) > 0:
+            if response[0] == True:
+              # 文章モードのみ履歴保存
+              if (len(response[1]) > 0) and (flag == 0):
+                user_dict = {"role": "user", "parts": [message.content]}
+                model_dict = {"role": "model", "parts": [response[1]]}
+
+                # 30件を超えたら削除（1個目はメッセージカウント）
+                if len(ai_data) >= 31:
+                  del ai_data[1]
+                  del ai_data[1]
+                
+                ai_data.append(user_dict)
+                ai_data.append(model_dict)
+
+                ai_data[0] += 1
+
+                with open(f'data/ai/{message.author.id}.json', 'w', encoding='UTF-8') as f:
+                  json.dump(ai_data, f)
               
-              await message.reply("会話履歴を削除したで", mention_author=False)
-              res = ""
+              if len(response) > 1000:
+                response = response[1][:800] + "\n\n※長すぎるから省略するで"
+
+              else:
+                response = response[1]
+                
+              await message.reply(response, mention_author=False)
 
             else:
-              res = gpt(message.content, 0, history)
+              # エラー発生時
+              await message.reply("ごめんな、エラーやわ。時間を空けるか、内容を変えてみてな。", mention_author=False)
 
-          else:
-            ai_data[str(message.author.id)] = []
-            history = []
-
-            with open('aidata.pkl', 'wb') as f:
-                pickle.dump(ai_data, f)
-                
-            res = gpt(message.content, 0, history)
-
-        # 履歴保存
-        if len(res) > 0:
-          # 文章モードのみ履歴保存
-          if (res != ai_error) and (flag == 0):
-            user_dict = {"role": "user", "parts": [message.content]}
-            model_dict = {"role": "model", "parts": [res]}
-
-            if len(ai_data[str(message.author.id)]) >= 24:
-              ai_data[str(message.author.id)].pop(0)
-              ai_data[str(message.author.id)].pop(0)
-            
-            ai_data[str(message.author.id)].append(user_dict)
-            ai_data[str(message.author.id)].append(model_dict)
-
-            with open('aidata.pkl', 'wb') as f:
-              pickle.dump(ai_data, f)
-          
-          if len(res) > 1000:
-            res = res[:800] + "\n\n※長すぎるから省略するで"
-            
-          await message.reply(res, mention_author=False)
+              # エラーを専用チャンネルに投げておく async内じゃないので今は動かない
+              error_log = client.get_channel(ERROR_LOG)
+              embed = discord.Embed(title="エラー",
+                                    description="AIチャットにてエラーが発生しました。",
+                                    timestamp=datetime.datetime.now(), color=0xff0000)
+              embed.add_field(name="メッセージ内容",value="（画像）")
+              embed.add_field(name="エラー内容",value=response[1])
+              await error_log.send(embed=embed)
     
     elif str(message.channel.id) in fxblocked:
       pattern = "https?://[A-Za-z0-9_/:%#$&?()~.=+-]+?(?=https?:|[^A-Za-z0-9_/:%#$&?()~.=+-]|$)"
