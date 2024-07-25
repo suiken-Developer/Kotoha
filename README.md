@@ -1,7 +1,7 @@
 # Akane
 株式会社エーアイのキャラクター「琴葉 茜」をモデルとしたDiscord Botです。
 
-[サーバーに招待する](https://discord.com/oauth2/authorize?client_id=777557090562474044)
+**[サーバーに招待する](https://discord.com/oauth2/authorize?client_id=777557090562474044)**
 
 Status: https://stats.uptimerobot.com/OLLN9UA6YG
 ※現在休止中です
