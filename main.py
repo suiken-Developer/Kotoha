@@ -16,15 +16,17 @@ import json
 import requests  # zip用
 import pickle
 import re
+from io import BytesIO
 
 from yt_dlp import YoutubeDL
 from discord.channel import VoiceChannel
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from dotenv import load_dotenv # python-dotenv
-import google.generativeai as genai
+import google.generativeai as genai # google-generativeai
 import urllib.parse
-from aiodanbooru.api import DanbooruAPI
-import scratchattach as scratch3
+from aiodanbooru.api import DanbooruAPI # aiodanbooru
+import scratchattach as scratch3 # scratchattach
+import qrcode # qrcode
 
 from pagination import Pagination # pagination.py
 
@@ -36,10 +38,10 @@ load_dotenv() # .env読み込み
 # 変数群
 TOKEN = os.getenv("TOKEN") # Token
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-OWNER = os.getenv("OWNER")
-ERROR_LOG = os.getenv("ERROR_LOG")
+OWNER = int(os.getenv("OWNER"))
+ERROR_LOG = int(os.getenv("ERROR_LOG"))
 prefix = "k."  # Default Prefix
-Bot_Version = "4.11.10"
+Bot_Version = "4.12.0"
 
 # Gemini
 aimodel_name = "gemini-1.5-pro-latest"
@@ -816,14 +818,6 @@ async def ytdl(ctx: discord.Interaction, url:str, option:discord.app_commands.Ch
       await ctx.followup.send(embed=embed, ephemeral=True)
 
 '''
-#ps music
-@tree.command(name="ps music", description="プロジェクトセカイの楽曲情報を取得")
-@discord.app_commands.describe(name="楽曲名 (一部入力可)")
-async def userinfo(ctx: discord.Interaction, name: str):
-  
-  
-'''
-'''
 #card
 @tree.command(name="card", description="ユーザーカードを作成します")
 async def card(ctx: discord.Interaction):
@@ -1117,6 +1111,58 @@ class GosenChoen(discord.ui.Modal, title='「5000兆円欲しい！」ジェネ�
 @tree.command(name="gosen", description="「5000兆円欲しい！」ジェネレーター")
 async def gosen_choen(ctx: discord.Interaction):
   await ctx.response.send_modal(GosenChoen())
+
+
+# QRCode
+class QRCode(discord.ui.Modal, title='QRコード作成'):
+    line1 = discord.ui.TextInput(
+        label='QRコードにする文字列',
+        placeholder='https://google.com/',
+        required=True,
+        max_length=500,
+    )
+
+    async def on_submit(self, ctx: discord.Interaction):        
+      qr_str = str(self.line1.value)
+
+      qr = qrcode.QRCode(
+          version=None,
+          error_correction=qrcode.constants.ERROR_CORRECT_H,
+          box_size=6
+      )
+
+      qr.add_data(qr_str)
+
+      try:
+        qr.make(fit=True)
+        img = qr.make_image()
+        img.save("qr.png")
+        file = discord.File(fp="qr.png", filename="qr.png", spoiler=False)
+
+      except Exception as e:
+        embed = discord.Embed(title=":x: エラー",
+                        description="作成に失敗しました。文字列を短くするか、変更してください。",
+                        color=0xff0000)
+        await ctx.response.send_message(embed=embed, ephemeral=True)
+        #print(e)
+
+      else:
+        embed = discord.Embed(title="QRコード")
+        embed.set_image(url="attachment://qr.png")
+        await ctx.response.send_message(file=file, embed=embed, ephemeral=False)
+
+    async def on_error(self, ctx: discord.Interaction, error: Exception) -> None:
+        embed = discord.Embed(title=":x: エラー",
+                            description="作成に失敗しました。文字列を短くするか、変更してください。",
+                            color=0xff0000)
+        await ctx.response.send_message(embed=embed, ephemeral=True)
+        print(error)
+
+
+# QRCode
+@tree.command(name="qr", description="QRコード作成")
+async def qr(ctx: discord.Interaction):
+  await ctx.response.send_modal(QRCode())
     
 '''
 #monochrome
