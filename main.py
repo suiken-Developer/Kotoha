@@ -41,7 +41,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OWNER = int(os.getenv("OWNER"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 prefix = "k."  # Default Prefix
-Bot_Version = "4.12.0"
+Bot_Version = "4.12.1"
 
 # Gemini
 aimodel_name = "gemini-1.5-pro-latest"
@@ -412,7 +412,7 @@ async def on_ready():
     try:
       await client.change_presence(
         activity=discord.Streaming(name=activity_list[activity_count],
-                                   url="https://www.twitch.tv/discord"))
+                                   url="https://www.youtube.com/watch?v=OVuYIMa5XBw"))
     except:
       pass
     if activity_count == len(activity_list) - 1:
@@ -498,7 +498,7 @@ async def cat(ctx: discord.Interaction):
 #招待リンク
 @tree.command(name="invite", description="Akaneの招待リンクを表示するで")
 async def invite(ctx: discord.Interaction):
-  button = discord.ui.Button(label="招待する",style=discord.ButtonStyle.link,url="https://herebots.sui8.repl.co/akane")
+  button = discord.ui.Button(label="招待する",style=discord.ButtonStyle.link,url="https://discord.com/oauth2/authorize?client_id=777557090562474044")
   embed = discord.Embed(
     title="招待リンク",
     description="下のボタンからAkaneを招待できるで！（サーバー管理権限が必要です)",
