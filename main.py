@@ -1,50 +1,50 @@
 # インポート群
 from __future__ import unicode_literals
 import discord  # discord.py
+#from discord.channel import VoiceChannel
 from discord.ui import Select, View
 import discord.app_commands
-from discord.app_commands import Range
-from discord.ext import commands
+#from discord.ext import commands
 import os
 import random
 import datetime
-import time
 import shutil
 import asyncio  # タイマー
 import aiohttp
 import json
 import requests  # zip用
-import pickle
 import re
-from io import BytesIO
 
 from yt_dlp import YoutubeDL
-from discord.channel import VoiceChannel
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
-from dotenv import load_dotenv # python-dotenv
-import google.generativeai as genai # google-generativeai
+#from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from dotenv import load_dotenv  # python-dotenv
+import google.generativeai as genai  # google-generativeai
 import urllib.parse
-from aiodanbooru.api import DanbooruAPI # aiodanbooru
-import scratchattach as scratch3 # scratchattach
-import qrcode # qrcode
+from aiodanbooru.api import DanbooruAPI  # aiodanbooru
+import scratchattach as scratch3  # scratchattach
+import qrcode  # qrcode
 
-from pagination import Pagination # pagination.py
-
+from pagination import Pagination  # pagination.py
 
 ##################################################
 ''' 初期設定 '''
-load_dotenv() # .env読み込み
+load_dotenv()  # .env読み込み
 
 # 変数群
-TOKEN = os.getenv("TOKEN") # Token
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+TOKEN = os.getenv("TOKEN")  # Token
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Gemini API Key
+
+UR7_USERNAME = os.getenv("UR7_USERNAME")  # ur7.cc
+UR7_PASSWORD = os.getenv("UR7_PASSWORD")  # ur7.cc
+
 OWNER = int(os.getenv("OWNER"))
+STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
-prefix = "k."  # Default Prefix
-Bot_Version = "4.12.2"
+PREFIX = "k."  # Default Prefix
+VERSION = "4.12.3"
 
 # Gemini
-aimodel_name = "gemini-1.5-pro-latest"
+AIMODEL_NAME = "gemini-1.5-pro-latest"
 
 text_generation_config = {
     "temperature": 0.9,
@@ -84,7 +84,7 @@ safety_settings = [
 ]
 
 # Prompts
-akane_prompt = """
+AKANE_PROMPT = """
 あなたはVOICEROIDの「琴葉茜」です。
 
 ========琴葉茜========
@@ -107,7 +107,7 @@ akane_prompt = """
 では茜、Userに返答してください。
 """
 
-aoi_prompt = """
+AOI_PROMPT = """
 あなたはVOICEROIDの「琴葉葵」です。
 
 ========琴葉葵========
@@ -128,7 +128,7 @@ aoi_prompt = """
 では葵、Userに返答してください。
 """
 
-kurisu_prompt = """
+KURISU_PROMPT = """
 あなたはSteins;GateおよびSteins;Gate0の登場人物である「牧瀬紅莉栖」です。
 
 ========牧瀬紅莉栖========
@@ -166,7 +166,7 @@ kurisu_prompt = """
 では紅莉栖、Userに返答してください。
 """
 
-jinrou_prompt = """
+JINROU_PROMPT = """
 あなたは人狼ゲームのプレイヤー「琴葉茜」であり、今は「人狼」です。
 
 ========人狼========
@@ -193,14 +193,14 @@ jinrou_prompt = """
 では人狼、Userに返答してください。
 """
 
-quiz_prompt = """あなたは優秀なアシスタントです。あなたは様々なジャンルのクイズを作ることが出来ます。以下の条件に従って返答してください。
+QUIZ_PROMPT = """あなたは優秀なアシスタントです。あなたは様々なジャンルのクイズを作ることが出来ます。以下の条件に従って返答してください。
 # 条件
 ・日本語で回答してください。
 ・ランダムなジャンルのクイズを作ってください。
 ・クイズは4択で、['問題', '1. 選択肢1', '2. 選択肢2', '3. 選択肢3', '4. 選択肢4', '答えの番号', '解説']の形式で返答してください。"""
 
-system_prompts = [akane_prompt, aoi_prompt, kurisu_prompt, jinrou_prompt]
-charas = ["琴葉茜", "琴葉葵", "牧瀬紅莉栖", "人狼（β版）"]
+SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, KURISU_PROMPT, JINROU_PROMPT]
+CHARAS = ["琴葉茜", "琴葉葵", "牧瀬紅莉栖", "人狼（β版）"]
 
 
 ##################################################
@@ -208,7 +208,7 @@ charas = ["琴葉茜", "琴葉葵", "牧瀬紅莉栖", "人狼（β版）"]
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
-quiz_model = genai.GenerativeModel(model_name=aimodel_name, safety_settings=safety_settings, generation_config=text_generation_config, system_instruction=quiz_prompt)
+quiz_model = genai.GenerativeModel(model_name=AIMODEL_NAME, safety_settings=safety_settings, generation_config=text_generation_config, system_instruction=QUIZ_PROMPT)
 
 # メンバーインテント
 intents = discord.Intents.all()
@@ -256,7 +256,7 @@ def add_text_to_image(img, text, font_path, font_size, font_color, height, width
   return img
 
 def gpt(text, flag, attachment, chara):
-  global aimodel_name
+  global AIMODEL_NAME
   '''
   Gemini本体処理
 
@@ -279,10 +279,10 @@ def gpt(text, flag, attachment, chara):
   # テキストモード
   if flag == 0:
     # キャラ数が合っていないエラー対策
-    if chara > len(system_prompts) - 1:
+    if chara > len(SYSTEM_PROMPTS) - 1:
       chara = 0
 
-    text_model = genai.GenerativeModel(model_name=aimodel_name, safety_settings=safety_settings, generation_config=text_generation_config, system_instruction=system_prompts[int(chara)])
+    text_model = genai.GenerativeModel(model_name=AIMODEL_NAME, safety_settings=safety_settings, generation_config=text_generation_config, system_instruction=SYSTEM_PROMPTS[int(chara)])
     chat = text_model.start_chat(history=attachment)
 
     # Geminiにメッセージを投げて返答を待つ。エラーはエラーとして返す。
@@ -298,10 +298,10 @@ def gpt(text, flag, attachment, chara):
   # 画像モード
   else:
     # エラー対策
-    if chara > len(system_prompts) - 1:
+    if chara > len(SYSTEM_PROMPTS) - 1:
       chara = 0
       
-    image_model = genai.GenerativeModel(model_name=aimodel_name, safety_settings=safety_settings, generation_config=image_generation_config, system_instruction=system_prompts[int(chara)])
+    image_model = genai.GenerativeModel(model_name=AIMODEL_NAME, safety_settings=safety_settings, generation_config=image_generation_config, system_instruction=SYSTEM_PROMPTS[int(chara)])
     image_parts = [{"mime_type": "image/jpeg", "data": attachment}]
     prompt_parts = [image_parts[0], f"\n{text if text else 'この画像は何ですか？'}"]
 
@@ -338,8 +338,8 @@ class SelectView(View):
       placeholder="選択してください",
       disabled=False,
       options=[
-          discord.SelectOption(label="琴葉茜", value="0", description="VOICEROID"),
-          discord.SelectOption(label="琴葉葵", value="1", description="VOICEROID"),
+          discord.SelectOption(label="琴葉茜", value="0", description="合成音声キャラクター"),
+          discord.SelectOption(label="琴葉葵", value="1", description="合成音声キャラクター"),
           discord.SelectOption(label="牧瀬紅莉栖", value="2", description="Steins;Gate"),
           discord.SelectOption(label="人狼（β版）", value="3", description="人狼ゲーム"),
       ],
@@ -354,10 +354,10 @@ class SelectView(View):
       with open(f"data/ai/{ctx.user.id}.json", 'w', encoding='UTF-8') as f:
           json.dump([ai_data[0], int(select.values[0])], f)
 
-      charas 
+      CHARAS 
                 
       await ctx.response.edit_message(view=self)
-      await ctx.followup.send(f":white_check_mark: {ctx.user.mention} のキャラクターを**{charas[int(select.values[0])]}**に変更しました")     
+      await ctx.followup.send(f":white_check_mark: {ctx.user.mention} のキャラクターを**{CHARAS[int(select.values[0])]}**に変更しました")     
 
 ##################################################
 
@@ -379,7 +379,7 @@ async def on_ready():
         bot_members.append(member)
 
   #activity = discord.Streaming(name='k.help でヘルプ | ' + str(bot_guilds) + ' Guilds ', url="https://www.twitch.tv/discord")
-  activity = discord.CustomActivity(name="✅ Botが起動完了しました")
+  activity = discord.CustomActivity(name="✅ 起動完了")
   await client.change_presence(activity=activity)
 
   #fxtwitter
@@ -388,13 +388,13 @@ async def on_ready():
 
   # 起動メッセージを専用サーバーに送信（チャンネルが存在しない場合、スルー）
   try:
-    ready_log = client.get_channel(800380094375264318)
+    ready_log = client.get_channel(STARTUP_LOG)
     embed = discord.Embed(title="Akane 起動完了",
                           description="**Akane#0940** が起動しました。\n```サーバー数: " +
                           str(bot_guilds) + "\nユーザー数: " +
                           str(len(bot_members)) + "```",
                           timestamp=datetime.datetime.now())
-    embed.set_footer(text=f"Akane - Ver{Bot_Version}")
+    embed.set_footer(text=f"Akane - Ver{VERSION}")
     await ready_log.send(embed=embed)
 
   except:
@@ -404,8 +404,9 @@ async def on_ready():
   activity_list = [
     "❓/help",
     f"{bot_guilds} Servers",
-    f"{len(bot_members)} Users" # 人数を水増ししてる
+    f"{len(bot_members)} Users"
   ]
+  
   while True:
     await asyncio.sleep(10)
     
@@ -456,9 +457,9 @@ async def help(ctx: discord.Interaction, command: str = None):
 
   else:
     async def get_page(page: int):
-      global Bot_Version
+      global VERSION
       
-      embed = discord.Embed(title=f"Akane (v{Bot_Version}) コマンドリスト", description="❓コマンドの詳細説明: /help <コマンド名>\n\n**コマンド**\n", color=discord.Colour.red())
+      embed = discord.Embed(title=f"Akane (v{VERSION}) コマンドリスト", description="❓コマンドの詳細説明: /help <コマンド名>\n\n**コマンド**\n", color=discord.Colour.red())
       offset = (page-1) * L
       
       for command in commands_formatted[offset:offset+L]:
@@ -553,7 +554,7 @@ async def dice(ctx: discord.Interaction, pcs: int = 1, maximum: int = 6):
 @tree.command(name="ping", description="AkaneのPingを確認するで")
 async def ping(ctx: discord.Interaction):
   embed = discord.Embed(title="Pong!",
-                        description="`{0}ms`".format(round(client.latency * 1000, 2)),
+                        description=f"`{round(client.latency * 1000, 2)}ms`",
                         color=0xc8ff00)
   await ctx.response.send_message(embed=embed)
 
@@ -618,7 +619,7 @@ async def userinfo(ctx: discord.Interaction, user:str):
       embed.add_field(name="アカウント名", value=f"{user.name}#{user.discriminator}",inline=True)
     #embed.add_field(name="ステータス", value=user.status,inline=True)
     embed.add_field(name="メンション", value=user.mention, inline=True)
-    embed.set_footer(text="アカウント作成日時: {0}".format(user.created_at))
+    embed.set_footer(text=f"アカウント作成日時: {user.created_at}")
 
     if hasattr(user.avatar, 'key'):
       embed.set_thumbnail(url=user.avatar.url)
@@ -746,11 +747,10 @@ async def scff(ctx: discord.Interaction, mode:str, target:str, user:str):
 async def url(ctx: discord.Interaction, url:str):
   await ctx.response.defer()
 
-  req = requests.post(
-    "https://ur7.cc/yourls-api.php?username=admin&password={0}&action=shorturl&format=json&url={1}"
-    .format("hirohiro34364564!", url))
+  request = requests.post(
+    f"https://ur7.cc/yourls-api.php?username={UR7_USERNAME}&password={UR7_PASSWORD}&action=shorturl&format=json&url={url}")
 
-  r = req.json()
+  r = request.json()
 
   try:
     short = json.dumps(r["shorturl"])
@@ -1293,7 +1293,7 @@ async def _slash_stop(ctx: SlashContext):
 
 @client.event
 async def on_message(message):
-  global client, fxblocked, system_prompt, prefix, OWNER, ERROR_LOG, charas, Bot_Version, aimodel_name
+  global client, fxblocked, system_prompt, PREFIX, OWNER, ERROR_LOG, CHARAS, VERSION, AIMODEL_NAME
   
   if message.author.bot or message.mention_everyone:
     return
@@ -1323,7 +1323,7 @@ async def on_message(message):
       
         async with message.channel.typing():
           # メッセージカウント
-          if message.content == f"{prefix}count":
+          if message.content == f"{PREFIX}count":
             if os.path.isfile(f"data/ai/{message.author.id}.json"):
 
               with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
@@ -1337,7 +1337,7 @@ async def on_message(message):
             response = ""
 
           # 会話履歴リセット
-          elif message.content == f"{prefix}clear":
+          elif message.content == f"{PREFIX}clear":
             if os.path.isfile(f"data/ai/{message.author.id}.json"):
 
               with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
@@ -1356,14 +1356,14 @@ async def on_message(message):
             response = ""
 
           # キャラクター変更
-          elif message.content == f"{prefix}chara":
+          elif message.content == f"{PREFIX}chara":
             if os.path.isfile(f"data/ai/{message.author.id}.json"):
               with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
                 ai_data = json.load(f)
                 
               view = SelectView()
               
-              await message.reply(f"変更するキャラクターを選択してください\n現在のキャラクター: **{charas[ai_data[1]]}**\n\n:warning: キャラクターを変更すると会話履歴がリセットされます", view=view)
+              await message.reply(f"変更するキャラクターを選択してください\n現在のキャラクター: **{CHARAS[ai_data[1]]}**\n\n:warning: キャラクターを変更すると会話履歴がリセットされます", view=view)
               
             else:
               await message.reply(":x: まだ会話を行っていません", mention_author=False)
@@ -1371,7 +1371,7 @@ async def on_message(message):
             response = ""
 
           # 統計表示
-          elif message.content == f"{prefix}stats":
+          elif message.content == f"{PREFIX}stats":
             try:
               total_talks = 0
               
@@ -1392,20 +1392,20 @@ async def on_message(message):
 
             else:   
               embed = discord.Embed(title="Akane AI 統計情報",
-                                            description=f"**総会話回数**\n{total_talks}回\n\n**総ユーザー数**\n{total_users}人\n\n**AIモデル**\n{aimodel_name}\n\n",
+                                            description=f"**総会話回数**\n{total_talks}回\n\n**総ユーザー数**\n{total_users}人\n\n**AIモデル**\n{AIMODEL_NAME}\n\n",
                                             color=discord.Colour.green())
-              embed.set_footer(text=f"Akane v{Bot_Version}")
+              embed.set_footer(text=f"Akane v{VERSION}")
               await message.reply(embed=embed, mention_author=False)
 
             response = ""
 
           # ヘルプ
-          elif message.content == f"{prefix}help":
+          elif message.content == f"{PREFIX}help":
               embed = discord.Embed(title="Akane AIチャット ヘルプ",
                             description="AIチャットのヘルプメニューです。",
                             color=discord.Colour.red())
-              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{prefix}count`と送信して会話回数の表示", inline=False)
-              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`{prefix}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
+              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{PREFIX}count`と送信して会話回数の表示", inline=False)
+              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
               embed.add_field(name="専用コマンド",value=f"※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n`{'k.clear'.ljust(12)}` 会話履歴のリセット\n`{'k.stats'.ljust(12)}` 統計情報の表示", inline=False)
               embed.set_footer(text="不具合等連絡先: @bz6")
               await message.reply(embed=embed, mention_author=False)
@@ -1446,8 +1446,8 @@ async def on_message(message):
                               embed = discord.Embed(title="Akane AIチャット",
                                             description="AIチャットのご利用ありがとうございます。",
                                             color=discord.Colour.red())
-                              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{prefix}count`と送信して会話回数の表示", inline=False)
-                              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`{prefix}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
+                              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{PREFIX}count`と送信して会話回数の表示", inline=False)
+                              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
                               embed.add_field(name="専用コマンド",value=f"※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n`{'k.clear'.ljust(12)}` 会話履歴のリセット\n`{'k.stats'.ljust(12)}` 統計情報の表示", inline=False)
                               embed.set_footer(text="不具合等連絡先: @bz6")
                               await message.reply(embed=embed)
@@ -1491,8 +1491,8 @@ async def on_message(message):
               embed = discord.Embed(title="Akane AIチャット",
                             description="AIチャットのご利用ありがとうございます。",
                             color=discord.Colour.red())
-              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{prefix}count`と送信して会話回数の表示", inline=False)
-              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`{prefix}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
+              embed.add_field(name="機能紹介",value=f"・Akane AIとの会話\n・画像認識\n・`{PREFIX}count`と送信して会話回数の表示", inline=False)
+              embed.add_field(name="注意事項",value=f"・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。", inline=False)
               embed.add_field(name="専用コマンド",value=f"※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n`{'k.clear'.ljust(12)}` 会話履歴のリセット\n`{'k.stats'.ljust(12)}` 統計情報の表示", inline=False)
               embed.set_footer(text="不具合等連絡先: @bz6")
               await message.reply(embed=embed)
@@ -1592,7 +1592,7 @@ async def on_message(message):
       
         async with message.channel.typing():
           # メッセージカウント
-          if message.content == f"{prefix}rating":
+          if message.content == f"{PREFIX}rating":
             if os.path.isfile(f"data/quiz/{message.author.id}.json"):
 
               with open(f"data/quiz/{message.author.id}.json", "r", encoding='UTF-8') as f:
@@ -1679,12 +1679,12 @@ async def on_message(message):
         await message.reply("\n".join(urls), mention_author=False)
 
   if message.author.id == OWNER:
-    if message.content == f"{prefix}devhelp":
+    if message.content == f"{PREFIX}devhelp":
       desc = f"```Akane 管理者用コマンドリスト```\n**管理コマンド**\n`sync`, `devsync`"
       embed = discord.Embed(title="📖コマンドリスト", description=desc)
       await message.reply(embed=embed, mention_author=False)
 
-    if message.content == f"{prefix}sync":
+    if message.content == f"{PREFIX}sync":
       #コマンドをSync
       try:
         await tree.sync()
@@ -1700,7 +1700,7 @@ async def on_message(message):
                             color=discord.Colour.green())
         await message.reply(embed=embed, mention_author=False)
 
-    if message.content == f"{prefix}devsync":
+    if message.content == f"{PREFIX}devsync":
       #コマンドをSync
       try:
         await tree.sync(guild=message.guild.id)
@@ -1716,7 +1716,7 @@ async def on_message(message):
                             color=discord.Colour.green())
         await message.reply(embed=embed, mention_author=False)
 
-    if message.content == f"{prefix}stop":
+    if message.content == f"{PREFIX}stop":
       print("[Info] Shutdown is requested by owner")
       embed = discord.Embed(title=":white_check_mark: 成功",
                             description="Botを停止しています",
