@@ -41,7 +41,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 OWNER = int(os.getenv("OWNER"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 prefix = "k."  # Default Prefix
-Bot_Version = "4.12.1"
+Bot_Version = "4.12.2"
 
 # Gemini
 aimodel_name = "gemini-1.5-pro-latest"
@@ -379,8 +379,7 @@ async def on_ready():
         bot_members.append(member)
 
   #activity = discord.Streaming(name='k.help でヘルプ | ' + str(bot_guilds) + ' Guilds ', url="https://www.twitch.tv/discord")
-  activity = discord.Streaming(name='Akane 起動完了',
-                               url="https://www.youtube.com/watch?v=OVuYIMa5XBw")
+  activity = discord.CustomActivity(name="✅ Botが起動完了しました")
   await client.change_presence(activity=activity)
 
   #fxtwitter
@@ -409,14 +408,17 @@ async def on_ready():
   ]
   while True:
     await asyncio.sleep(10)
+    
     try:
       await client.change_presence(
-        activity=discord.Streaming(name=activity_list[activity_count],
-                                   url="https://www.youtube.com/watch?v=OVuYIMa5XBw"))
+        activity=discord.CustomActivity(name=activity_list[activity_count]))
+      
     except:
       pass
+    
     if activity_count == len(activity_list) - 1:
       activity_count = 0
+      
     else:
       activity_count = activity_count + 1
 
@@ -1478,7 +1480,7 @@ async def on_message(message):
               #print(history)
               response = gpt(message.content, 0, history, ai_data[1])
 
-            # 会話が初めてならpkl作成＆インストラクション
+            # 会話が初めてならjson作成＆インストラクション
             else:
               ai_data = [0, 0]
               history = []
@@ -1616,7 +1618,7 @@ async def on_message(message):
 
               response = quiz(message.content)
 
-            # 会話が初めてならpkl作成＆インストラクション
+            # 会話が初めてならjson作成＆インストラクション
             else:
               quiz_data = [0]
               
