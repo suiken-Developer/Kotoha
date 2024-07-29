@@ -1,10 +1,16 @@
 # 特定ギルドのコマンドをリセットするプログラム
+import os
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv # python-dotenv
 
 
 load_dotenv() # .env読み込み
+
+TOKEN = os.getenv("TOKEN")
+DEV_GUILD = int(os.getenv("DEV_GUILD"))
+
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 

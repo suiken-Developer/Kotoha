@@ -15,7 +15,7 @@ class Pagination(discord.ui.View):
             return True
         else:
             emb = discord.Embed(
-                description=f"コマンドの実行者のみ使用できます",
+                description=":x: コマンドの実行者のみ使用できます",
                 color=16711680
             )
             await interaction.response.send_message(embed=emb, ephemeral=True)
@@ -62,9 +62,9 @@ class Pagination(discord.ui.View):
 
     async def on_timeout(self, interaction: discord.Interaction):
         # remove buttons on timeout
-        #self.children[0].disabled = True
-        #self.children[1].disabled = True
-        #self.children[2].disabled = True
+        # self.children[0].disabled = True
+        # self.children[1].disabled = True
+        # self.children[2].disabled = True
         message = await self.interaction.original_response()
         await message.edit(view=None)
 
