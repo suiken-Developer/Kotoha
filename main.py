@@ -41,7 +41,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.12.4"
+VERSION = "4.12.5"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -123,9 +123,7 @@ tree = discord.app_commands.CommandTree(client)
 ''' 関数群 '''
 
 
-def add_text_to_image(img, text,
-                      font_path, font_size, font_color,
-                      height, width):
+def add_text_to_image(img, text, font_path, font_size, font_color, height, width):
     '''
     画像に文字を描画する
 
@@ -187,11 +185,10 @@ def gpt(text, flag, attachment, chara):
         if chara > len(SYSTEM_PROMPTS) - 1:
             chara = 0
 
-        text_model = genai.GenerativeModel(
-            model_name=AIMODEL_NAME,
-            safety_settings=safety_settings,
-            generation_config=text_generation_config,
-            system_instruction=SYSTEM_PROMPTS[int(chara)])
+        text_model = genai.GenerativeModel(model_name=AIMODEL_NAME,
+                                           safety_settings=safety_settings,
+                                           generation_config=text_generation_config,
+                                           system_instruction=SYSTEM_PROMPTS[int(chara)])
         chat = text_model.start_chat(history=attachment)
 
         # Geminiにメッセージを投げて返答を待つ。エラーはエラーとして返す。
@@ -210,11 +207,10 @@ def gpt(text, flag, attachment, chara):
         if chara > len(SYSTEM_PROMPTS) - 1:
             chara = 0
 
-        image_model = genai.GenerativeModel(
-            model_name=AIMODEL_NAME,
-            safety_settings=safety_settings,
-            generation_config=image_generation_config,
-            system_instruction=SYSTEM_PROMPTS[int(chara)])
+        image_model = genai.GenerativeModel(model_name=AIMODEL_NAME,
+                                            safety_settings=safety_settings,
+                                            generation_config=image_generation_config,
+                                            system_instruction=SYSTEM_PROMPTS[int(chara)])
         image_parts = [{"mime_type": "image/jpeg", "data": attachment}]
         prompt_parts = [image_parts[0], f"\n{text if text else 'この画像は何ですか？'}"]
 
@@ -251,12 +247,9 @@ class SelectView(View):
         placeholder="選択してください",
         disabled=False,
         options=[
-            discord.SelectOption(label="琴葉茜", value="0",
-                                 description="合成音声キャラクター"),
-            discord.SelectOption(label="琴葉葵", value="1",
-                                 description="合成音声キャラクター"),
-            discord.SelectOption(label="人狼（β版）", value="2",
-                                 description="人狼ゲーム"),
+            discord.SelectOption(label="琴葉茜", value="0", description="合成音声キャラクター"),
+            discord.SelectOption(label="琴葉葵", value="1", description="合成音声キャラクター"),
+            discord.SelectOption(label="人狼（β版）", value="2", description="人狼ゲーム"),
         ],
     )
     async def selectMenu(self, ctx: discord.Interaction, select: Select):
@@ -269,8 +262,7 @@ class SelectView(View):
             json.dump([ai_data[0], int(select.values[0])], f)
 
         await ctx.response.edit_message(view=self)
-        await ctx.followup.send(f"✅ {ctx.user.mention} のキャラクターを"
-                                f"**{CHARAS[int(select.values[0])]}**に変更しました")
+        await ctx.followup.send(f"✅ {ctx.user.mention} のキャラクターを**{CHARAS[int(select.values[0])]}**に変更しました")
 
 
 ##################################################
@@ -293,7 +285,7 @@ async def on_ready():
             else:
                 bot_members.append(member)
 
-    activity = discord.CustomActivity(name="✅ 起動完了")
+    activity = discord.CustomActivity(name=":white_check_mark: 起動完了")
     await client.change_presence(activity=activity)
 
     # fxtwitter
@@ -315,18 +307,13 @@ async def on_ready():
         pass
 
     activity_count = 0
-    activity_list = [
-        "❓/help",
-        f"{bot_guilds} Servers",
-        f"{len(bot_members)} Users"
-        ]
+    activity_list = ["❓/help", f"{bot_guilds} Servers", f"{len(bot_members)} Users"]
 
     while True:
         await asyncio.sleep(10)
 
         try:
-            activity = discord.CustomActivity(
-                name=activity_list[activity_count])
+            activity = discord.CustomActivity(name=activity_list[activity_count])
             await client.change_presence(activity=activity)
 
         except Exception:
@@ -350,8 +337,7 @@ async def help(ctx: discord.Interaction, command: str = None):
     # 長さを整形したコマンド一覧
     commands_just = [cmd.ljust(12) for cmd in commands]
 
-    commands_formatted = [f"`/{commands_just[i]}` {commands[cmd]['info']}"
-                          for (i, cmd) in zip(range(len(commands)), commands)]
+    commands_formatted = [f"`/{commands_just[i]}` {commands[cmd]['info']}" for (i, cmd) in zip(range(len(commands)), commands)]
     L = 10
 
     if command:
@@ -359,25 +345,19 @@ async def help(ctx: discord.Interaction, command: str = None):
             category = commands[command]["category"]
             help_usage = commands[command]["usage"]
             help_info = commands[command]["info"]
-            embed = discord.Embed(title=f"{category}: **{command}**",
-                                  description="")
+            embed = discord.Embed(title=f"{category}: **{command}**", description="")
             embed.add_field(name="使い方",
-                            value=f"\n```/{help_usage}```",
-                            inline=False)
+                            value=f"\n```/{help_usage}```", inline=False)
             embed.add_field(name="説明",
-                            value=f"```{help_info}```",
-                            inline=False)
+                            value=f"```{help_info}```", inline=False)
             embed.set_footer(text="<> : 必要引数 | [] : オプション引数")
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
-            await ctx.response.send_message(":x: そのコマンドは存在しません",
-                                            ephemeral=True)
+            await ctx.response.send_message(":x: そのコマンドは存在しません", ephemeral=True)
 
     else:
         async def get_page(page: int):
-            global VERSION
-
             embed = discord.Embed(
                 title=f"Akane (v{VERSION}) コマンドリスト",
                 description="❓コマンドの詳細説明: /help <コマンド名>\n\n**コマンド**\n",
@@ -435,13 +415,11 @@ async def cat(ctx: discord.Interaction):
 # 招待リンク
 @tree.command(name="invite", description="Akaneの招待リンクを表示するで")
 async def invite(ctx: discord.Interaction):
-    button = discord.ui.Button(
-        label="招待する", style=discord.ButtonStyle.link,
-        url="https://discord.com/oauth2/authorize?client_id=777557090562474044")
-    embed = discord.Embed(
-      title="招待リンク",
-      description="下のボタンからAkaneを招待できるで！（サーバー管理権限が必要です)",
-      color=0xdda0dd)
+    button = discord.ui.Button(label="招待する", style=discord.ButtonStyle.link,
+                               url="https://discord.com/oauth2/authorize?client_id=777557090562474044")
+    embed = discord.Embed(title="招待リンク",
+                          description="下のボタンからAkaneを招待できるで！（サーバー管理権限が必要です)",
+                          color=0xdda0dd)
     view = discord.ui.View()
     view.add_item(button)
     await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -450,15 +428,9 @@ async def invite(ctx: discord.Interaction):
 # じゃんけん
 @tree.command(name="janken", description="じゃんけん")
 async def janken(ctx: discord.Interaction):
-    button1 = discord.ui.Button(
-        label="ぐー",
-        style=discord.ButtonStyle.primary, custom_id="j_g")
-    button2 = discord.ui.Button(
-        label="ちょき",
-        style=discord.ButtonStyle.success, custom_id="j_c")
-    button3 = discord.ui.Button(
-        label="ぱー",
-        style=discord.ButtonStyle.danger, custom_id="j_p")
+    button1 = discord.ui.Button(label="ぐー", style=discord.ButtonStyle.primary, custom_id="j_g")
+    button2 = discord.ui.Button(label="ちょき", style=discord.ButtonStyle.success, custom_id="j_c")
+    button3 = discord.ui.Button(label="ぱー", style=discord.ButtonStyle.danger, custom_id="j_p")
     view = discord.ui.View()
     view.add_item(button1)
     view.add_item(button2)
@@ -528,13 +500,11 @@ async def kuji(ctx: discord.Interaction, pcs: int = 1):
                 points += omikuji_list.index(j) + 1
                 kuji_results[i] = f"**{j}**"
 
-            await ctx.response.send_message(
-                f"今日の運勢は... {', '.join(map(str, kuji_results))}！"
-                f"（{pcs}連おみくじ総合運勢: **{omikuji_list[(points // pcs) - 1]}）**")
+            await ctx.response.send_message(f"今日の運勢は... {', '.join(map(str, kuji_results))}！"
+                                            f"（{pcs}連おみくじ総合運勢: **{omikuji_list[(points // pcs) - 1]}）**")
 
         else:
-            await ctx.response.send_message(
-                f"今日の運勢は... **{random.choice(omikuji_list)}**！")
+            await ctx.response.send_message(f"今日の運勢は... **{random.choice(omikuji_list)}**！")
 
 
 # userinfo
@@ -570,9 +540,7 @@ async def userinfo(ctx: discord.Interaction, user: str):
             embed.add_field(name="アカウント名", value=user.name, inline=True)
 
         else:
-            embed.add_field(name="アカウント名",
-                            value=f"{user.name}#{user.discriminator}",
-                            inline=True)
+            embed.add_field(name="アカウント名", value=f"{user.name}#{user.discriminator}", inline=True)
             # embed.add_field(name="ステータス", value=user.status,inline=True)
             embed.add_field(name="メンション", value=user.mention, inline=True)
             embed.set_footer(text=f"アカウント作成日時: {user.created_at}")
@@ -602,8 +570,7 @@ async def scinfo(ctx: discord.Interaction, user: str):
         if user.scratchteam:
             embed = discord.Embed(
                 title="ユーザー名",
-                description=f"[{user}](https://scratch.mit.edu/users/{user})"
-                f"[Scratchチーム]",
+                description=f"[{user}](https://scratch.mit.edu/users/{user}) [Scratchチーム]",
                 color=discord.Colour.green())
         else:
             embed = discord.Embed(
@@ -641,8 +608,7 @@ async def scinfo(ctx: discord.Interaction, user: str):
                         value=user.about_me, inline=False)
         embed.add_field(name="私が取り組んでいること",
                         value=user.wiwo, inline=False)
-        embed.set_footer(text=f"アカウント作成日時: "
-                         f"{jd[:4]}/{jd[5:7]}/{jd[8:10]} {jd[11:19]}")
+        embed.set_footer(text=f"アカウント作成日時: {jd[:4]}/{jd[5:7]}/{jd[8:10]} {jd[11:19]}")
 
         await ctx.followup.send(embed=embed)
 
@@ -685,10 +651,9 @@ async def scff(ctx: discord.Interaction, mode: str, target: str, user: str):
                 else:
                     status = "していません"
 
-                embed = discord.Embed(
-                    title="フォロー判定",
-                    description=f"`@{target}`は`@{user}`を**フォロー{status}**",
-                    color=discord.Colour.green())
+                embed = discord.Embed(title="フォロー判定",
+                                      description=f"`@{target}`は`@{user}`を**フォロー{status}**",
+                                      color=discord.Colour.green())
                 await ctx.followup.send(embed=embed)
 
         if mode == "follower":
@@ -708,10 +673,9 @@ async def scff(ctx: discord.Interaction, mode: str, target: str, user: str):
                 else:
                     status = "されていません"
 
-                embed = discord.Embed(
-                    title="フォロワー判定",
-                    description=f"`@{target}`は`@{user}`に**フォロー{status}**",
-                    color=discord.Colour.green())
+                embed = discord.Embed(title="フォロワー判定",
+                                      description=f"`@{target}`は`@{user}`に**フォロー{status}**",
+                                      color=discord.Colour.green())
                 await ctx.followup.send(embed=embed)
 
 
@@ -722,9 +686,8 @@ async def url(ctx: discord.Interaction, url: str):
     await ctx.response.defer()
 
     request = requests.post(
-      f"https://ur7.cc/yourls-api.php?"
-      f"username={UR7_USERNAME}&password={UR7_PASSWORD}&"
-      f"action=shorturl&format=json&url={url}")
+        "https://ur7.cc/yourls-api.php?username={UR7_USERNAME}&password={UR7_PASSWORD}&action=shorturl&format=json&url={url}"
+        )
 
     r = request.json()
 
@@ -738,10 +701,9 @@ async def url(ctx: discord.Interaction, url: str):
         await ctx.followup.send(embed=embed, ephemeral=True)
 
     else:
-        embed = discord.Embed(
-            title="短縮URL",
-            description="URLを短縮しました。\n`{0}`".format(short.strip('"')),
-            color=discord.Colour.green())
+        embed = discord.Embed(title="短縮URL",
+                              description=f"URLを短縮しました。\n`{short.strip('"')}`",
+                              color=discord.Colour.green())
         embed.set_footer(text="Powered by UR7 Shortener")
         await ctx.followup.send(embed=embed, ephemeral=True)
 
@@ -773,8 +735,7 @@ async def ytdl(ctx: discord.Interaction, url: str,
                 opt = "動画のみ"
 
             elif option.value == 2:
-                youtube_dl_opts = {'format': 'bestaudio[ext=m4a]',
-                                   'max-downloads': '1'}
+                youtube_dl_opts = {'format': 'bestaudio[ext=m4a]', 'max-downloads': '1'}
                 opt = "音声のみ"
 
         except Exception:
@@ -797,9 +758,9 @@ async def ytdl(ctx: discord.Interaction, url: str,
             embed = discord.Embed(
                 title="YouTube動画ダウンロードリンク",
                 description=f"`{video_title}`のダウンロードリンクを取得しました。URLは約6時間有効です。 "
-                f"(オプション: {opt})\n\n[クリックしてダウンロード]({video_url})\n"
-                f"※YouTubeによる自動生成動画はダウンロードに失敗する場合があります\n"
-                f":warning: 著作権に違反してアップロードされた動画をダウンロードすることは違法です",
+                            f"(オプション: {opt})\n\n[クリックしてダウンロード]({video_url})\n"
+                            f"※YouTubeによる自動生成動画はダウンロードに失敗する場合があります\n"
+                            f":warning: 著作権に違反してアップロードされた動画をダウンロードすることは違法です",
                 color=discord.Colour.red())
             await ctx.followup.send(embed=embed, ephemeral=True)
 
@@ -853,7 +814,7 @@ async def unban(ctx: discord.Interaction, user: str):
                 # if not reason:
                 #     reason = "理由がありません"
                 embed.add_field(name="**BAN解除されたユーザー**",
-                                value="{0} [ID:{1}]".format(str(user), target),
+                                value=f"{user} [ID:{target}]",
                                 inline=False)
                 # embed.add_field(name="**理由**",
                 #                 value=f"{reason}",
@@ -887,8 +848,7 @@ async def delete(ctx: discord.Interaction, num: int):
         await ctx.response.defer()
 
         try:
-            deleted = await channel.purge(before=now, limit=int(num),
-                                          reason=f'{ctx.user}によるコマンド実行')
+            deleted = await channel.purge(before=now, limit=int(num), reason=f'{ctx.user}によるコマンド実行')
 
         except Exception:
             embed = discord.Embed(title=":x: エラー",
@@ -897,10 +857,9 @@ async def delete(ctx: discord.Interaction, num: int):
             await ctx.followup.send(embed=embed, ephemeral=True)
 
         else:
-            embed = discord.Embed(
-               title=":white_check_mark: 成功",
-               description=f"`{len(deleted)}`件のメッセージを削除しました",
-               color=discord.Colour.green())
+            embed = discord.Embed(title=":white_check_mark: 成功",
+                                  description=f"`{len(deleted)}`件のメッセージを削除しました",
+                                  color=discord.Colour.green())
             await ctx.followup.send(embed=embed, ephemeral=True)
 
 
@@ -964,9 +923,10 @@ async def danbooru(ctx: discord.Interaction, tags: str = None):
             embed = discord.Embed(
                title=":x: エラー",
                description="検索に失敗しました。タグが正しくないか、レート制限の可能性があります。\n"
-               "利用可能はタグは以下から確認できます。\n\n※検索のコツ※\n"
-               "・キャラクター名をローマ字、アンダーバー区切りにする（例: kotonoha_akane）\n"
-               "・作品名を正しい英語表記 or ローマ字表記にする",
+                           "利用可能はタグは以下から確認できます。\n\n"
+                           "※検索のコツ※\n"
+                           "・キャラクター名をローマ字、アンダーバー区切りにする（例: kotonoha_akane）\n"
+                           "・作品名を正しい英語表記 or ローマ字表記にする",
                color=0xff0000)
             button = discord.ui.Button(label="ページを開く",
                                        style=discord.ButtonStyle.link,
@@ -976,8 +936,7 @@ async def danbooru(ctx: discord.Interaction, tags: str = None):
             await ctx.followup.send(embed=embed, view=view, ephemeral=True)
 
         else:
-            embed = discord.Embed(title="検索結果",
-                                  description="オプション: なし")
+            embed = discord.Embed(title="検索結果", description="オプション: なし")
             embed.set_image(url=post.media_url)
             embed.set_footer(text="Powered by Danbooru")
             await ctx.followup.send(embed=embed)
@@ -1029,8 +988,7 @@ class GosenChoen(discord.ui.Modal, title='「5000兆円欲しい！」ジェネ�
     )
 
     async def on_submit(self, ctx: discord.Interaction):
-        url = "https://gsapi.cbrx.io/image?"
-        f"top={self.line1.value}&bottom={self.line2.value}&type=png"
+        url = "https://gsapi.cbrx.io/image?top={self.line1.value}&bottom={self.line2.value}&type=png"
 
         try:
             embed = discord.Embed()
@@ -1122,8 +1080,7 @@ async def animesearch(ctx: discord.Interaction, image: discord.Attachment):
         r = requests.get("https://api.trace.moe/search?anilistInfo&"
                          f"url={urllib.parse.quote_plus(image.url)}").json()
 
-        aninames = \
-            [entry['anilist']['title']['native'] for entry in r['result']]
+        aninames = [entry['anilist']['title']['native'] for entry in r['result']]
 
         result = ""
 
@@ -1133,24 +1090,20 @@ async def animesearch(ctx: discord.Interaction, image: discord.Attachment):
             result = result + f"・{i}\n"
 
     except Exception:
-        embed = discord.Embed(
-            title=":x: エラー",
-            description="検索に失敗しました。画像が壊れていないことを確認したうえで、しばらく時間をおいてください。",
-            color=0xff0000)
+        embed = discord.Embed(title=":x: エラー",
+                              description="検索に失敗しました。画像が壊れていないことを確認したうえで、しばらく時間をおいてください。",
+                              color=0xff0000)
         await ctx.followup.send(embed=embed, ephemeral=True)
 
     else:
-        embed = discord.Embed(
-            title="検索結果",
-            description=f"{len(aninames)}件の候補が見つかりました。\n```{result}```")
+        embed = discord.Embed(title="検索結果",
+                              description=f"{len(aninames)}件の候補が見つかりました。\n```{result}```")
         embed.set_footer(text="Powered by Trace.moe")
         await ctx.followup.send(embed=embed)
 
 
 @client.event
 async def on_message(message):
-    global client, fxblocked, system_prompt, PREFIX, \
-          OWNER, ERROR_LOG, CHARAS, VERSION, AIMODEL_NAME
 
     if message.author.bot or message.mention_everyone:
         return
@@ -1177,8 +1130,7 @@ async def on_message(message):
             await message.channel.send(i)
 
         elif message.channel.name == "akane-ai":
-            if message.content.startswith("::") or \
-              message.content.startswith("//"):
+            if message.content.startswith("::") or message.content.startswith("//"):
                 pass
 
             else:
@@ -1186,48 +1138,39 @@ async def on_message(message):
                     # メッセージカウント
                     if message.content == f"{PREFIX}count":
                         if os.path.isfile(f"data/ai/{message.author.id}.json"):
-                            with open(f"data/ai/{message.author.id}.json",
-                                      "r", encoding='UTF-8') as f:
+                            with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
                                 ai_data = json.load(f)
 
-                            await message.reply(
-                                f"あなたの総会話回数: {ai_data[0]}回"
-                                f"（保存中の会話履歴: 直近{min(len(ai_data) - 2, 30)}件）",
-                                mention_author=False)
+                            await message.reply(f"あなたの総会話回数: {ai_data[0]}回（保存中の会話履歴: 直近{min(len(ai_data) - 2, 30)}件）",
+                                                mention_author=False)
 
                         else:
-                            await message.reply("あなたの総会話回数: 0回",
-                                                mention_author=False)
+                            await message.reply("あなたの総会話回数: 0回", mention_author=False)
 
                         response = ""
 
                     # 会話履歴リセット
                     elif message.content == f"{PREFIX}clear":
                         if os.path.isfile(f"data/ai/{message.author.id}.json"):
-                            with open(f"data/ai/{message.author.id}.json",
-                                      "r", encoding="UTF-8") as f:
+                            with open(f"data/ai/{message.author.id}.json", "r", encoding="UTF-8") as f:
                                 ai_data = json.load(f)
 
                             count = [int(ai_data[0]), int(ai_data[1])]
 
-                            with open(f"data/ai/{message.author.id}.json",
-                                      "w", encoding="UTF-8") as f:
+                            with open(f"data/ai/{message.author.id}.json", "w", encoding="UTF-8") as f:
                                 json.dump(count, f)
 
-                            await message.reply("✅ 会話履歴を削除しました",
-                                                mention_author=False)
+                            await message.reply(":white_check_mark: 会話履歴を削除しました", mention_author=False)
 
                         else:
-                            await message.reply(":x: まだ会話を行っていません",
-                                                mention_author=False)
+                            await message.reply(":x: まだ会話を行っていません", mention_author=False)
 
                         response = ""
 
                     # キャラクター変更
                     elif message.content == f"{PREFIX}chara":
                         if os.path.isfile(f"data/ai/{message.author.id}.json"):
-                            with open(f"data/ai/{message.author.id}.json",
-                                      "r", encoding="UTF-8") as f:
+                            with open(f"data/ai/{message.author.id}.json", "r", encoding="UTF-8") as f:
                                 ai_data = json.load(f)
 
                             view = SelectView()
@@ -1239,15 +1182,12 @@ async def on_message(message):
                             else:
                                 chara_present = CHARAS[ai_data[1]]
 
-                            await message.reply(
-                                "変更するキャラクターを選択してください\n"
-                                f"現在のキャラクター: **{chara_present}**\n\n"
-                                ":warning: キャラクターを変更すると会話履歴がリセットされます",
-                                view=view)
+                            await message.reply("変更するキャラクターを選択してください\n"
+                                                f"現在のキャラクター: **{chara_present}**\n\n"
+                                                ":warning: キャラクターを変更すると会話履歴がリセットされます", view=view)
 
                         else:
-                            await message.reply(":x: まだ会話を行っていません",
-                                                mention_author=False)
+                            await message.reply(":x: まだ会話を行っていません", mention_author=False)
 
                         response = ""
 
@@ -1259,28 +1199,24 @@ async def on_message(message):
                             # フォルダ内の全てのjsonファイルを取得してカウント
                             for file_name in os.listdir("data/ai"):
                                 if file_name.endswith('.json'):
-                                    file_path = \
-                                        os.path.join("data/ai", file_name)
+                                    file_path = os.path.join("data/ai", file_name)
 
                                     with open(file_path, "r", encoding="UTF-8") as file:
                                         data = json.load(file)
 
                                     total_talks += data[0]
 
-                            total_users = sum(
-                                os.path.isfile(os.path.join("data/ai", name))
-                                for name in os.listdir("data/ai")) - 1
+                            total_users = sum(os.path.isfile(os.path.join("data/ai", name)) for name in os.listdir("data/ai")) - 1
 
                         except Exception:
                             await message.reply(":x: エラーが発生しました", mention_author=False)
 
                         else:
-                            embed = discord.Embed(
-                                title="Akane AI 統計情報",
-                                description=f"**総会話回数**\n{total_talks}回\n\n"
-                                f"**総ユーザー数**\n{total_users}人\n\n"
-                                f"**AIモデル**\n{AIMODEL_NAME}\n\n",
-                                color=discord.Colour.green())
+                            embed = discord.Embed(title="Akane AI 統計情報",
+                                                  description=f"**総会話回数**\n{total_talks}回\n\n"
+                                                              f"**総ユーザー数**\n{total_users}人\n\n"
+                                                              f"**AIモデル**\n{AIMODEL_NAME}\n\n",
+                                                  color=discord.Colour.green())
                             embed.set_footer(text=f"Akane v{VERSION}")
                             await message.reply(embed=embed, mention_author=False)
 
@@ -1288,30 +1224,27 @@ async def on_message(message):
 
                     # ヘルプ
                     elif message.content == f"{PREFIX}help":
-                        embed = discord.Embed(
-                            title="Akane AIチャット ヘルプ",
-                            description="AIチャットのヘルプメニューです。",
-                            color=discord.Colour.red())
-                        embed.add_field(
-                            name="機能紹介",
-                            value="・Akane AIとの会話\n・画像認識\n"
-                            f"・`{PREFIX}count`と送信して会話回数の表示",
-                            inline=False)
-                        embed.add_field(
-                            name="注意事項",
-                            value="・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n"
-                            "・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。"
-                            "他のユーザーとの会話に割り込むことはできません。\n"
-                            f"・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n"
-                            "・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。",
-                            inline=False)
-                        embed.add_field(
-                            name="専用コマンド",
-                            value="※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n"
-                            f"`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n"
-                            f"`{'k.clear'.ljust(12)}` 会話履歴のリセット\n"
-                            f"`{'k.stats'.ljust(12)}` 統計情報の表示",
-                            inline=False)
+                        embed = discord.Embed(title="Akane AIチャット ヘルプ",
+                                              description="AIチャットのヘルプメニューです。",
+                                              color=discord.Colour.red())
+                        embed.add_field(name="機能紹介",
+                                        value="・Akane AIとの会話\n"
+                                              "・画像認識\n"
+                                             f"・`{PREFIX}count`と送信して会話回数の表示",
+                                        inline=False)
+                        embed.add_field(name="注意事項",
+                                        value="・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n"
+                                              "・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。"
+                                              "他のユーザーとの会話に割り込むことはできません。\n"
+                                             f"・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n"
+                                              "・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。",
+                                        inline=False)
+                        embed.add_field(name="専用コマンド",
+                                        value="※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n"
+                                             f"`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n"
+                                             f"`{'k.clear'.ljust(12)}` 会話履歴のリセット\n"
+                                             f"`{'k.stats'.ljust(12)}` 統計情報の表示",
+                                        inline=False)
                         embed.set_footer(text="不具合等連絡先: @bz6")
                         await message.reply(embed=embed, mention_author=False)
                         response = ""
@@ -1322,14 +1255,12 @@ async def on_message(message):
 
                         for attachment in message.attachments:
                             # 対応している画像形式なら処理
-                            if any(attachment.filename.lower().endswith(ext)
-                                   for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
+                            if any(attachment.filename.lower().endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.webp']):
                                 async with aiohttp.ClientSession() as session:
                                     async with session.get(attachment.url) as resp:
                                         if resp.status != 200:
-                                            await message.reply(
-                                                ":x: 画像が読み取れません。時間を空けてから試してください。",
-                                                mention_author=False)
+                                            await message.reply(":x: 画像が読み取れません。時間を空けてから試してください。",
+                                                                mention_author=False)
                                             response = ""
 
                                         else:
@@ -1339,11 +1270,8 @@ async def on_message(message):
                                             cleaned_text = \
                                                 bracket_pattern.sub('', message.content)
 
-                                            if os.path.isfile(
-                                                    f"data/ai/{message.author.id}.json"):
-                                                with open(
-                                                      f"data/ai/{message.author.id}.json",
-                                                      "r", encoding="UTF-8") as f:
+                                            if os.path.isfile(f"data/ai/{message.author.id}.json"):
+                                                with open(f"data/ai/{message.author.id}.json", "r", encoding="UTF-8") as f:
                                                     ai_data = json.load(f)
 
                                                 chara = ai_data[1]
@@ -1352,66 +1280,38 @@ async def on_message(message):
                                                 chara = 0
                                                 ai_data = [0, 0]
 
-                                                with open(
-                                                  f'data/ai/{message.author.id}.json',
-                                                  'w', encoding="UTF-8") as f:
+                                                with open(f"data/ai/{message.author.id}.json", "w", encoding="UTF-8") as f:
                                                     json.dump(ai_data, f)
 
-                                                embed = discord.Embed(
-                                                    title="Akane AIチャット",
-                                                    description="AIチャットのご利用"
-                                                    "ありがとうございます。",
-                                                    color=discord.Colour.red())
-                                                embed.add_field(
-                                                    name="機能紹介",
-                                                    value="・Akane AIとの会話\n"
-                                                    "・画像認識\n"
-                                                    f"・`{PREFIX}count`と"
-                                                    "送信して会話回数の表示",
-                                                    inline=False)
-                                                embed.add_field(
-                                                    name="注意事項",
-                                                    value="・AIと会話しない場合は、"
-                                                    "メッセージの先頭に`::`または"
-                                                    "`//`を付けてください。\n"
-                                                    "・会話履歴はAkaneと各ユーザー間で"
-                                                    "保存されます（直近30件まで）。"
-                                                    "他のユーザーとの会話に"
-                                                    "割り込むことはできません。\n"
-                                                    "・会話に不調を感じる場合は、"
-                                                    f"`{PREFIX}clear`と送信し、"
-                                                    "会話履歴をリセットしてください。\n"
-                                                    "・Discord規約や公序良俗に"
-                                                    "反する発言を行ったり、"
-                                                    "Akaneにそのような発言を"
-                                                    "促す行為を禁止します。",
-                                                    inline=False)
-                                                embed.add_field(
-                                                    name="専用コマンド",
-                                                    value="※以下のコマンドは"
-                                                    "`#akane-ai`チャンネル内でのみ"
-                                                    "ご利用いただけます。\n"
-                                                    f"`{'k.chara'.ljust(12)}` "
-                                                    "AIのキャラクターを変更する\n"
-                                                    f"`{'k.clear'.ljust(12)}` "
-                                                    "会話履歴のリセット\n"
-                                                    f"`{'k.stats'.ljust(12)}` "
-                                                    "統計情報の表示",
-                                                    inline=False)
-                                                embed.set_footer(
-                                                    text="不具合等連絡先: @bz6"
-                                                    )
+                                                embed = discord.Embed(title="Akane AIチャット",
+                                                                      description="AIチャットのご利用ありがとうございます。",
+                                                                      color=discord.Colour.red())
+                                                embed.add_field(name="機能紹介",
+                                                                value="・Akane AIとの会話\n"
+                                                                      "・画像認識\n"
+                                                                     f"・`{PREFIX}count`と送信して会話回数の表示",
+                                                                inline=False)
+                                                embed.add_field(name="注意事項",
+                                                                value="・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n"
+                                                                      "・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n"
+                                                                     f"・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n"
+                                                                      "・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。",
+                                                                inline=False)
+                                                embed.add_field(name="専用コマンド",
+                                                                value="※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n"
+                                                                     f"`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n"
+                                                                     f"`{'k.clear'.ljust(12)}` 会話履歴のリセット\n"
+                                                                     f"`{'k.stats'.ljust(12)}` 統計情報の表示",
+                                                                inline=False)
+                                                embed.set_footer(text="不具合等連絡先: @bz6")
                                                 await message.reply(embed=embed)
 
-                                            response = gpt(cleaned_text, 1,
-                                                           image_data, chara)
+                                            response = gpt(cleaned_text, 1, image_data, chara)
 
                             else:
-                                await message.reply(
-                                    ":x: 画像が読み取れません。ファイルを変更してください。\n"
-                                    "対応しているファイル形式: "
-                                    "```.png .jpg .jpeg .gif .webp```",
-                                    mention_author=False)
+                                await message.reply(":x: 画像が読み取れません。ファイルを変更してください。\n"
+                                                    "対応しているファイル形式: ```.png .jpg .jpeg .gif .webp```",
+                                                    mention_author=False)
                                 response = ""
 
                     else:
@@ -1420,8 +1320,7 @@ async def on_message(message):
 
                         # 会話したことがあるか
                         if os.path.isfile(f"data/ai/{message.author.id}.json"):
-                            with open(f"data/ai/{message.author.id}.json",
-                                      "r", encoding='UTF-8') as f:
+                            with open(f"data/ai/{message.author.id}.json", "r", encoding='UTF-8') as f:
                                 ai_data = json.load(f)
 
                             if len(ai_data) == 2:
@@ -1434,60 +1333,47 @@ async def on_message(message):
                                 history = list(ai_data[2:])
 
                             # print(history)
-                            response = gpt(message.content, 0,
-                                           history, ai_data[1])
+                            response = gpt(message.content, 0, history, ai_data[1])
 
                         # 会話が初めてならjson作成＆インストラクション
                         else:
                             ai_data = [0, 0]
                             history = []
 
-                            with open(f"data/ai/{message.author.id}.json",
-                                      "w", encoding="UTF-8") as f:
+                            with open(f"data/ai/{message.author.id}.json", "w", encoding="UTF-8") as f:
                                 json.dump(ai_data, f)
 
-                            embed = discord.Embed(
-                                title="Akane AIチャット",
-                                description="AIチャットのご利用ありがとうございます。",
-                                color=discord.Colour.red())
-                            embed.add_field(
-                                name="機能紹介",
-                                value="・Akane AIとの会話\n・画像認識\n"
-                                f"・`{PREFIX}count`と送信して会話回数の表示",
-                                inline=False)
-                            embed.add_field(
-                                name="注意事項",
-                                value="・AIと会話しない場合は、"
-                                "メッセージの先頭に`::`または`//`を付けてください。\n"
-                                "・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。"
-                                "他のユーザーとの会話に割り込むことはできません。\n"
-                                f"・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、"
-                                "会話履歴をリセットしてください。\n"
-                                "・Discord規約や公序良俗に反する発言を行ったり、"
-                                "Akaneにそのような発言を促す行為を禁止します。",
-                                inline=False)
-                            embed.add_field(
-                                name="専用コマンド",
-                                value="※以下のコマンドは`#akane-ai`チャンネル内でのみ"
-                                "ご利用いただけます。\n"
-                                f"`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n"
-                                f"`{'k.clear'.ljust(12)}` 会話履歴のリセット\n"
-                                f"`{'k.stats'.ljust(12)}` 統計情報の表示",
-                                inline=False)
+                            embed = discord.Embed(title="Akane AIチャット",
+                                                  description="AIチャットのご利用ありがとうございます。",
+                                                  color=discord.Colour.red())
+                            embed.add_field(name="機能紹介",
+                                            value="・Akane AIとの会話\n"
+                                                  "・画像認識\n"
+                                                 f"・`{PREFIX}count`と送信して会話回数の表示",
+                                            inline=False)
+                            embed.add_field(name="注意事項",
+                                            value="・AIと会話しない場合は、メッセージの先頭に`::`または`//`を付けてください。\n"
+                                                  "・会話履歴はAkaneと各ユーザー間で保存されます（直近30件まで）。他のユーザーとの会話に割り込むことはできません。\n"
+                                                 f"・会話に不調を感じる場合は、`{PREFIX}clear`と送信し、会話履歴をリセットしてください。\n"
+                                                  "・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。",
+                                            inline=False)
+                            embed.add_field(name="専用コマンド",
+                                            value="※以下のコマンドは`#akane-ai`チャンネル内でのみご利用いただけます。\n"
+                                                 f"`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n"
+                                                 f"`{'k.clear'.ljust(12)}` 会話履歴のリセット\n"
+                                                 f"`{'k.stats'.ljust(12)}` 統計情報の表示",
+                                            inline=False)
                             embed.set_footer(text="不具合等連絡先: @bz6")
                             await message.reply(embed=embed)
-                            response = gpt(message.content, 0,
-                                           history, ai_data[1])
+                            response = gpt(message.content, 0, history, ai_data[1])
 
                     # 履歴保存
                     if len(response) > 0:
                         if response[0] is True:
                             # 文章モードのみ履歴保存
                             if (len(response[1]) > 0) and (flag == 0):
-                                user_dict = \
-                                  {"role": "user", "parts": [message.content]}
-                                model_dict = \
-                                    {"role": "model", "parts": [response[1]]}
+                                user_dict = {"role": "user", "parts": [message.content]}
+                                model_dict = {"role": "model", "parts": [response[1]]}
 
                                 # 30件を超えたら削除（1個目はメッセージカウント）
                                 if len(ai_data) >= 31:
@@ -1499,79 +1385,56 @@ async def on_message(message):
 
                                 ai_data[0] += 1
 
-                                with open(f"data/ai/{message.author.id}.json",
-                                          "w", encoding="UTF-8") as f:
+                                with open(f"data/ai/{message.author.id}.json", "w", encoding="UTF-8") as f:
                                     json.dump(ai_data, f)
 
+                                # 文字数が1000を超えたらカット
                                 if len(response) > 1000:
-                                    response = response[1][:1000] + \
-                                      "\n\n※1000文字を超える内容は省略されました※"
+                                    response = f"{response[1][:1000]}\n\n※1000文字を超える内容は省略されました※"
 
                                 else:
                                     response = response[1]
 
-                                await message.reply(response,
-                                                    mention_author=False)
+                                await message.reply(response, mention_author=False)
 
                             # 画像モード
                             elif (len(response[1]) > 0) and (flag == 1):
                                 ai_data[0] += 1
 
-                                with open(f"data/ai/{message.author.id}.json",
-                                          "w", encoding="UTF-8") as f:
+                                with open(f"data/ai/{message.author.id}.json", "w", encoding="UTF-8") as f:
                                     json.dump(ai_data, f)
 
                                 if len(response) > 1000:
-                                    response = response[1][:1000] + \
-                                      "\n\n※1000文字を超える内容は省略されました※"
+                                    response = f"{response[1][:1000]}\n\n※1000文字を超える内容は省略されました※"
 
                                 else:
                                     response = response[1]
 
-                                await message.reply(response,
-                                                    mention_author=False)
+                                await message.reply(response, mention_author=False)
 
                         else:
                             if str(response[1]).startswith("429"):
-                                embed = discord.Embed(
-                                    title="混雑中",
-                                    description="Akane AIが混雑しています。"
-                                                "**5秒程度**お待ちください。",
-                                    color=0xff0000
-                                    )
-                                embed.set_footer(
-                                    text=f"Report ID: {message.id}"
-                                    )
-                                await message.reply(embed=embed,
-                                                    mention_author=False)
+                                embed = discord.Embed(title="混雑中",
+                                                      description="Akane AIが混雑しています。**5秒程度**お待ちください。",
+                                                      color=0xff0000)
+                                embed.set_footer(text=f"Report ID: {message.id}")
+                                await message.reply(embed=embed, mention_author=False)
 
                             elif str(response[1]).startswith("500"):
-                                embed = discord.Embed(
-                                    title="混雑中またはエラー",
-                                    description="サーバーが混雑しているか、内部エラーが発生しています。\n"
-                                    "**30分～1時間程度**時間を空けると完全に解決される場合がありますが、"
-                                    "このままご利用いただけます。",
-                                    color=0xff0000
-                                    )
-                                embed.set_footer(
-                                    text=f"Report ID: {message.id}"
-                                    )
-                                await message.reply(embed=embed,
-                                                    mention_author=False)
+                                embed = discord.Embed(title="混雑中またはエラー",
+                                                      description="サーバーが混雑しているか、内部エラーが発生しています。\n"
+                                                                  "**30分～1時間程度**時間を空けると完全に解決される場合がありますが、このままご利用いただけます。",
+                                                      color=0xff0000)
+                                embed.set_footer(text=f"Report ID: {message.id}")
+                                await message.reply(embed=embed, mention_author=False)
 
                             # エラー発生時
                             else:
-                                embed = discord.Embed(
-                                    title="エラー",
-                                    description="不明なエラーが発生しました。"
-                                    "しばらく時間を空けるか、メッセージ内容を変えてください。",
-                                    color=0xff0000
-                                    )
-                                embed.set_footer(
-                                    text=f"Report ID: {message.id}"
-                                    )
-                                await message.reply(embed=embed,
-                                                    mention_author=False)
+                                embed = discord.Embed(title="エラー",
+                                                      description="不明なエラーが発生しました。しばらく時間を空けるか、メッセージ内容を変えてください。",
+                                                      color=0xff0000)
+                                embed.set_footer(text=f"Report ID: {message.id}")
+                                await message.reply(embed=embed, mention_author=False)
 
                             if message.attachments:
                                 value = "（画像）"
@@ -1581,59 +1444,35 @@ async def on_message(message):
 
                             # エラーを専用チャンネルに投げておく async内じゃないので今は動かない
                             error_log = client.get_channel(ERROR_LOG)
-                            embed = discord.Embed(
-                                title="エラー",
-                                description="AIチャットにてエラーが発生しました。",
-                                timestamp=datetime.datetime.now(),
-                                color=0xff0000
-                                )
-                            embed.add_field(
-                                name="メッセージ内容",
-                                value=value
-                                )
-                            embed.add_field(
-                                name="エラー内容",
-                                value=response[1]
-                                )
-                            embed.add_field(
-                                name="ギルドとチャンネル",
-                                value=f"{message.guild.name} "
-                                      f"(ID: {message.guild.id})\n"
-                                f"#{message.channel.id}"
-                                )
-                            embed.add_field(
-                                name="ユーザー",
-                                value=f"{message.author.mention} "
-                                      f"(ID: {message.author.id})"
-                                )
+                            embed = discord.Embed(title="エラー",
+                                                  description="AIチャットにてエラーが発生しました。",
+                                                  timestamp=datetime.datetime.now(),
+                                                  color=0xff0000)
+                            embed.add_field(name="メッセージ内容", value=value)
+                            embed.add_field(name="エラー内容", value=response[1])
+                            embed.add_field(name="ギルドとチャンネル", value=f"{message.guild.name} (ID: {message.guild.id})\n#{message.channel.id}")
+                            embed.add_field(name="ユーザー", value=f"{message.author.mention} (ID: {message.author.id})")
                             embed.set_footer(text=f"Report ID: {message.id}")
                             await error_log.send(embed=embed)
 
         elif message.channel.name == "akane-quiz":
-            if message.content.startswith("::") or \
-                  message.content.startswith("//"):
+            if message.content.startswith("::") or message.content.startswith("//"):
                 pass
 
             else:
                 async with message.channel.typing():
                     # メッセージカウント
                     if message.content == f"{PREFIX}rating":
-                        if os.path.isfile(
-                              f"data/quiz/{message.author.id}.json"):
-                            with open(f"data/quiz/{message.author.id}.json",
-                                      "r", encoding="UTF-8") as f:
+                        if os.path.isfile(f"data/quiz/{message.author.id}.json"):
+                            with open(f"data/quiz/{message.author.id}.json", "r", encoding="UTF-8") as f:
                                 quiz_data = json.load(f)
 
-                            await message.reply(
-                                f"レートは{round(quiz_data[0] // 100, 2)}やで",
-                                mention_author=False
-                                )
+                            await message.reply(f"レートは{round(quiz_data[0] // 100, 2)}やで",
+                                                mention_author=False)
 
                         else:
-                            await message.reply(
-                                "レートは0.00やで",
-                                mention_author=False
-                                )
+                            await message.reply("レートは0.00やで",
+                                                mention_author=False)
 
                         response = ""
 
@@ -1643,10 +1482,8 @@ async def on_message(message):
 
                     else:
                         # クイズしたことがあるか
-                        if os.path.isfile(
-                              f"data/quiz/{message.author.id}.json"):
-                            with open(f"data/quiz/{message.author.id}.json",
-                                      "r", encoding="UTF-8") as f:
+                        if os.path.isfile(f"data/quiz/{message.author.id}.json"):
+                            with open(f"data/quiz/{message.author.id}.json", "r", encoding="UTF-8") as f:
                                 quiz_data = json.load(f)
 
                             response = quiz(message.content)
@@ -1655,22 +1492,16 @@ async def on_message(message):
                         else:
                             quiz_data = [0]
 
-                            with open(f"data/quiz/{message.author.id}.json",
-                                      "w", encoding="UTF-8") as f:
+                            with open(f"data/quiz/{message.author.id}.json", "w", encoding="UTF-8") as f:
                                 json.dump(quiz_data, f)
 
-                            embed = discord.Embed(
-                                title="Akane AIクイズ",
-                                description="AIクイズのご利用ありがとうございます。",
-                                color=discord.Colour.red()
-                                )
-                            embed.add_field(
-                                name="注意事項",
-                                value="・クイズをしない場合は、"
-                                "メッセージの先頭に`//`または`::`を付けてください。\n"
-                                "・Discord規約や公序良俗に反する発言を行ったり、"
-                                "Akaneにそのような発言を促す行為を禁止します。",
-                                inline=False)
+                            embed = discord.Embed(title="Akane AIクイズ",
+                                                  description="AIクイズのご利用ありがとうございます。",
+                                                  color=discord.Colour.red())
+                            embed.add_field(name="注意事項",
+                                            value="・クイズをしない場合は、メッセージの先頭に`//`または`::`を付けてください。\n"
+                                                  "・Discord規約や公序良俗に反する発言を行ったり、Akaneにそのような発言を促す行為を禁止します。",
+                                            inline=False)
                             embed.set_footer(text="不具合等連絡先: @bz6")
                             await message.reply(embed=embed)
 
@@ -1713,8 +1544,7 @@ async def on_message(message):
             pattern = "https?://[A-Za-z0-9_/:%#$&?()~.=+-]+?(?=" \
                     + "https?:|[^A-Za-z0-9_/:%#$&?()~.=+-]|$)"
             urls = list(set(re.findall(pattern, message.content)))
-            twi_pattern = \
-                r"https?://(twitter.com|x.com)/([\w/:%#$&\?\(\)~\.=\+\-]+)/status/"
+            twi_pattern = r"https?://(twitter.com|x.com)/([\w/:%#$&\?\(\)~\.=\+\-]+)/status/"
 
             pattern = re.compile(twi_pattern)
 
@@ -1802,46 +1632,37 @@ async def on_button_click(ctx: discord.Interaction):
         result = random.choice(range(1, 3))
 
         if result == 1:
-            await ctx.response.send_message(
-                f"ぽん:v:{ctx.user.mention}\n君の勝ちやで～")
+            await ctx.response.send_message(f"ぽん:v:{ctx.user.mention}\n君の勝ちやで～")
 
         elif result == 2:
-            await ctx.response.send_message(
-                f"ぽん✊{ctx.user.mention}\nあいこやな。")
+            await ctx.response.send_message(f"ぽん✊{ctx.user.mention}\nあいこやな。")
 
         else:
-            await ctx.response.send_message(
-                f"ぽん✋{ctx.user.mention}\n私の勝ちやな。また挑戦してや。")
+            await ctx.response.send_message(f"ぽん✋{ctx.user.mention}\n私の勝ちやな。また挑戦してや。")
 
     if custom_id == "j_c":
         result = random.choice(range(1, 3))
 
         if result == 1:
-            await ctx.response.send_message(
-                f"ぽん✋{ctx.user.mention}\n君の勝ちやで～")
+            await ctx.response.send_message(f"ぽん✋{ctx.user.mention}\n君の勝ちやで～")
 
         elif result == 2:
-            await ctx.response.send_message(
-                f"ぽん:v:{ctx.user.mention}\nあいこやな。")
+            await ctx.response.send_message(f"ぽん:v:{ctx.user.mention}\nあいこやな。")
 
         else:
-            await ctx.response.send_message(
-                f"ぽん✊{ctx.user.mention}\n私の勝ちやな。また挑戦してや。")
+            await ctx.response.send_message(f"ぽん✊{ctx.user.mention}\n私の勝ちやな。また挑戦してや。")
 
     if custom_id == "j_p":
         result = random.choice(range(1, 3))
 
         if result == 1:
-            await ctx.response.send_message(
-                f"ぽん✊{ctx.user.mention}\n君の勝ちやで～")
+            await ctx.response.send_message(f"ぽん✊{ctx.user.mention}\n君の勝ちやで～")
 
         elif result == 2:
-            await ctx.response.send_message(
-                f"ぽん✋{ctx.user.mention}\nあいこやな。")
+            await ctx.response.send_message(f"ぽん✋{ctx.user.mention}\nあいこやな。")
 
         else:
-            await ctx.response.send_message(
-                f"ぽん:v:{ctx.user.mention}\n私の勝ちやな。また挑戦してや。")
+            await ctx.response.send_message(f"ぽん:v:{ctx.user.mention}\n私の勝ちやな。また挑戦してや。")
 
 
 # Botの起動とDiscordサーバーへの接続
