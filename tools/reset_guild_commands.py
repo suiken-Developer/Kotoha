@@ -3,10 +3,10 @@ import os
 
 import discord
 from discord.ext import commands
-from dotenv import load_dotenv # python-dotenv
+from dotenv import load_dotenv  # python-dotenv
 
 
-load_dotenv() # .env読み込み
+load_dotenv()  # .env読み込み
 
 TOKEN = os.getenv("TOKEN")
 DEV_GUILD = int(os.getenv("DEV_GUILD"))

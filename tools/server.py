@@ -5,6 +5,7 @@ from threading import Thread
 
 app = Flask("")
 
+
 @app.route("/")
 def main():
     return "Akane Status: Online"
