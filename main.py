@@ -702,7 +702,7 @@ async def url(ctx: discord.Interaction, url: str):
 
     else:
         embed = discord.Embed(title="短縮URL",
-                              description=f"URLを短縮しました。\n`{short.strip('"')}`",
+                              description="URLを短縮しました。\n`{0}`".format(short.strip('"')),
                               color=discord.Colour.green())
         embed.set_footer(text="Powered by UR7 Shortener")
         await ctx.followup.send(embed=embed, ephemeral=True)
