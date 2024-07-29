@@ -285,7 +285,7 @@ async def on_ready():
             else:
                 bot_members.append(member)
 
-    activity = discord.CustomActivity(name=":white_check_mark: 起動完了")
+    activity = discord.CustomActivity(name="✅ 起動完了")
     await client.change_presence(activity=activity)
 
     # fxtwitter
