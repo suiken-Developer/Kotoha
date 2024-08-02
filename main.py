@@ -38,7 +38,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.14.0"
+VERSION = "4.14.1"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -299,7 +299,7 @@ async def help(ctx: discord.Interaction, command: str = None):
     # 長さを整形したコマンド一覧
     commands_just = [cmd.ljust(12) for cmd in commands]
 
-    commands_formatted = [f"`/{commands_just[i]}` {commands[cmd]["info"]}" for (i, cmd) in zip(range(len(commands)), commands)]
+    commands_formatted = [f"`/{commands_just[i]}` {commands[cmd]['info']}" for (i, cmd) in zip(range(len(commands)), commands)]
     L = 10
 
     # 引数あり: コマンド説明
@@ -498,17 +498,22 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
 
                     if c == "END":
                         word = "".join(words)
-                        results += f"{word}\n"
+                        results += f"・{word}\n"
                         break
 
                     else:
                         words.append(c)
 
             if "しかのこのこのここしたんたん" in results:
-                await ctx.response.send_message(f":deer:\n{results}**あたり！**")
+                status = "あたり！"
 
             else:
-                await ctx.response.send_message(f":deer:\n{results}**はずれ！**")
+                status = "はずれ！"
+
+            embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
+                                  description=f"{results}\n\n**{status}**",
+                                  color=discord.Colour.green())
+            await ctx.response.send_message(embed=embed)
 
         else:
             c = "し"
@@ -519,17 +524,21 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
 
                 if c == "END":
                     word = "".join(words)
-                    
-                    if word == "しかのこのこのここしたんたん":
-                        await ctx.response.send_message(f":deer:\n{word}\n**あたり！**")
-                        break
-
-                    else:
-                        await ctx.response.send_message(f":deer:\n{word}\n**はずれ！**")
-                        break
+                    break
 
                 else:
                     words.append(c)
+
+            if word == "しかのこのこのここしたんたん":
+                status = "あたり！"
+
+            else:
+                status = "はずれ！"
+
+            embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
+                                    description=f"{word}\n\n**{status}**",
+                                    color=discord.Colour.green())
+            await ctx.response.send_message(embed=embed)
 
 
 # userinfo

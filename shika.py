@@ -1,5 +1,5 @@
 import random
-import sys
+
 
 def shika(s):
     if s == "し":
