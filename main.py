@@ -1,14 +1,11 @@
 # インポート群
 from __future__ import unicode_literals
 import discord  # discord.py
-# from discord.channel import VoiceChannel
 from discord.ui import Select, View
 import discord.app_commands
-# from discord.ext import commands
 import os
 import random
 import datetime
-# import shutil  # ファイルコピーに使用
 import asyncio  # タイマー
 import aiohttp
 import json
@@ -16,7 +13,6 @@ import requests  # zip用
 import re
 
 from yt_dlp import YoutubeDL
-from PIL import ImageDraw, ImageFont
 from dotenv import load_dotenv  # python-dotenv
 import google.generativeai as genai  # google-generativeai
 import urllib.parse
@@ -25,6 +21,7 @@ import scratchattach as scratch3  # scratchattach
 import qrcode  # qrcode
 
 from pagination import Pagination  # pagination.py
+from shikanoko import shika  # shikanoko.py
 
 ##################################################
 ''' 初期設定 '''
@@ -41,7 +38,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.12.5"
+VERSION = "4.14.0"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -121,41 +118,6 @@ tree = discord.app_commands.CommandTree(client)
 ##################################################
 
 ''' 関数群 '''
-
-
-def add_text_to_image(img, text, font_path, font_size, font_color, height, width):
-    '''
-    画像に文字を描画する
-
-    Parameters:
-    ----------
-    img : image
-        元画像
-    text : str
-        描画する文章
-    font_path : str
-        フォントファイルのパス
-    font_size : int
-        フォントのサイズ
-    font_color : ?
-        フォントの色
-    height: int
-        高さ
-    width : int
-        横幅
-
-    Returns:
-    ----------
-    image
-        完成した画像
-    '''
-    position = (width, height)
-    font = ImageFont.truetype(font_path, font_size)
-    draw = ImageDraw.Draw(img)
-
-    draw.text(position, text, font_color, font=font)
-
-    return img
 
 
 def gpt(text, flag, attachment, chara):
@@ -331,15 +293,16 @@ async def on_ready():
 @discord.app_commands.describe(command="指定したコマンドの説明を表示します")
 async def help(ctx: discord.Interaction, command: str = None):
 
-    with open('data/commands.json', encoding='utf-8') as f:
+    with open("data/commands.json", encoding="UTF-8") as f:
         commands = json.load(f)
 
     # 長さを整形したコマンド一覧
     commands_just = [cmd.ljust(12) for cmd in commands]
 
-    commands_formatted = [f"`/{commands_just[i]}` {commands[cmd]['info']}" for (i, cmd) in zip(range(len(commands)), commands)]
+    commands_formatted = [f"`/{commands_just[i]}` {commands[cmd]["info"]}" for (i, cmd) in zip(range(len(commands)), commands)]
     L = 10
 
+    # 引数あり: コマンド説明
     if command:
         if commands[command]:
             category = commands[command]["category"]
@@ -443,12 +406,14 @@ async def janken(ctx: discord.Interaction):
 @discord.app_commands.describe(pcs="サイコロの個数（1~100）")
 @discord.app_commands.describe(maximum="サイコロの最大値（1～999）")
 async def dice(ctx: discord.Interaction, pcs: int = 1, maximum: int = 6):
+    # エラー: サイコロの個数が範囲外
     if not 0 < pcs < 101:
         embed = discord.Embed(title=":x: エラー",
                               description="サイコロの個数は1~100で指定してください",
                               color=0xff0000)
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
+    # エラー: サイコロの目が範囲外
     elif not 0 < maximum < 1000:
         embed = discord.Embed(title=":x: エラー",
                               description="サイコロの目の最大値は個数は1~999で指定してください",
@@ -456,6 +421,7 @@ async def dice(ctx: discord.Interaction, pcs: int = 1, maximum: int = 6):
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     else:
+        # maximumが6以下なら絵文字を使用する
         if maximum > 6:
             dices = [random.randint(1, maximum) for i in range(pcs)]
 
@@ -482,6 +448,7 @@ async def ping(ctx: discord.Interaction):
 @tree.command(name="kuji", description="おみくじ")
 @discord.app_commands.describe(pcs="引く枚数（1~100）")
 async def kuji(ctx: discord.Interaction, pcs: int = 1):
+    # エラー: 枚数が範囲外
     if not 0 < pcs < 101:
         embed = discord.Embed(title=":x: エラー",
                               description="引くおみくじの枚数は1~100で指定してください",
@@ -505,6 +472,64 @@ async def kuji(ctx: discord.Interaction, pcs: int = 1):
 
         else:
             await ctx.response.send_message(f"今日の運勢は... **{random.choice(omikuji_list)}**！")
+
+
+# shikanoko
+@tree.command(name="shikanoko", description="「しかのこのこのここしたんたん」を引き当てよう")
+@discord.app_commands.describe(pcs="回数（1~10）")
+async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
+    # エラー: 枚数が範囲外
+    if not 0 < pcs < 11:
+        embed = discord.Embed(title=":x: エラー",
+                              description="回数は1~10で指定してください",
+                              color=0xff0000)
+        await ctx.response.send_message(embed=embed, ephemeral=True)
+
+    else:
+        if pcs > 1:
+            results = ""
+
+            for i in range(pcs):
+                c = "し"
+                words = [c]
+
+                while True:
+                    c = shika(c)
+
+                    if c == "END":
+                        word = "".join(words)
+                        results += f"{word}\n"
+                        break
+
+                    else:
+                        words.append(c)
+
+            if "しかのこのこのここしたんたん" in results:
+                await ctx.response.send_message(f":deer:\n{results}**あたり！**")
+
+            else:
+                await ctx.response.send_message(f":deer:\n{results}**はずれ！**")
+
+        else:
+            c = "し"
+            words = [c]
+
+            while True:
+                c = shika(c)
+
+                if c == "END":
+                    word = "".join(words)
+                    
+                    if word == "しかのこのこのここしたんたん":
+                        await ctx.response.send_message(f":deer:\n{word}\n**あたり！**")
+                        break
+
+                    else:
+                        await ctx.response.send_message(f":deer:\n{word}\n**はずれ！**")
+                        break
+
+                else:
+                    words.append(c)
 
 
 # userinfo
@@ -943,7 +968,7 @@ async def danbooru(ctx: discord.Interaction, tags: str = None):
 
 
 # fixtweet
-@tree.command(name="fixtweet", description="このチャンネルでのツイート自動展開を有効化・無効化します")
+@tree.command(name="fixtweet", description="このチャンネルでのツイート自動展開(fxtwitter)を有効化・無効化します")
 @discord.app_commands.default_permissions(administrator=True)
 async def fixtweet(ctx: discord.Interaction):
     global fxblocked
@@ -955,7 +980,7 @@ async def fixtweet(ctx: discord.Interaction):
             f.write('\n'.join(fxblocked))
 
         embed = discord.Embed(title=":white_check_mark: 成功",
-                              description="このチャンネルでのツイート自動展開を**無効化**しました",
+                              description="このチャンネルでのツイート自動展開(fxtwitter)を**無効化**しました",
                               color=discord.Colour.green())
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
@@ -966,7 +991,7 @@ async def fixtweet(ctx: discord.Interaction):
             f.write('\n'.join(fxblocked))
 
         embed = discord.Embed(title=":white_check_mark: 成功",
-                              description="このチャンネルでのツイート自動展開を**有効化**しました",
+                              description="このチャンネルでのツイート自動展開(fxtwitter)を**有効化**しました",
                               color=discord.Colour.green())
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
@@ -1456,6 +1481,9 @@ async def on_message(message):
                             await error_log.send(embed=embed)
 
         elif message.channel.name == "akane-quiz":
+            # 未実装
+            pass
+            '''
             if message.content.startswith("::") or message.content.startswith("//"):
                 pass
 
@@ -1509,15 +1537,15 @@ async def on_message(message):
 
                     # 履歴保存
                     if len(response) > 6:
-                        '''
+                        ''' '''
                         r = f"**問題**\n{response[0]}\n\n"
                         f"{response[1]}\n{response[2]}\n"
                         f"{response[3]}\n{response[4]}\n\n"
                         f"答え: ||{response[5]}\n{response[6]}||"
                         await message.reply(r, mention_author=False)
-                        '''
+                        ''' '''
                         await message.reply(response, mention_author=False)
-                        '''
+                        ''' '''
                         if response[0] == True:
                             quiz_data[0] += 100
 

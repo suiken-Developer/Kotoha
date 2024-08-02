@@ -1,0 +1,13 @@
+__pycache__
+*.env
+test.png
+card.png
+icon.png
+qr.png
+run.sh
+yomi.mp3
+v4.5.2.zip
+data/ai
+data/quiz
+data/quiz.txt
+data/fxtwitter.txt
