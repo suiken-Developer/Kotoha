@@ -21,7 +21,7 @@ import scratchattach as scratch3  # scratchattach
 import qrcode  # qrcode
 
 from pagination import Pagination  # pagination.py
-from shikanoko import shika  # shikanoko.py
+from shika import shika  # shikanoko.py
 
 ##################################################
 ''' 初期設定 '''
