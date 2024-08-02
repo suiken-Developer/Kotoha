@@ -536,8 +536,8 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 status = "はずれ！"
 
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
-                                    description=f"{word}\n\n**{status}**",
-                                    color=discord.Colour.green())
+                                  description=f"{word}\n\n**{status}**",
+                                  color=discord.Colour.green())
             await ctx.response.send_message(embed=embed)
 
 
