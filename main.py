@@ -38,7 +38,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.14.1"
+VERSION = "4.15.0"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -476,16 +476,21 @@ async def kuji(ctx: discord.Interaction, pcs: int = 1):
 
 # shikanoko
 @tree.command(name="shikanoko", description="「しかのこのこのここしたんたん」を引き当てよう")
-@discord.app_commands.describe(pcs="回数（1~10）")
+@discord.app_commands.describe(pcs="回数（1~20）")
 async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
     # エラー: 枚数が範囲外
-    if not 0 < pcs < 11:
+    if not 0 < pcs < 21:
         embed = discord.Embed(title=":x: エラー",
-                              description="回数は1~10で指定してください",
+                              description="回数は1~20で指定してください",
                               color=0xff0000)
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     else:
+        with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
+            data = json.load(f)
+
+        data['total'] += pcs
+
         if pcs > 1:
             results = ""
 
@@ -505,7 +510,17 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                         words.append(c)
 
             if "しかのこのこのここしたんたん" in results:
+                n = results.count("しかのこのこのここしたんたん")
                 status = "あたり！"
+                data['win'] += n
+                data['latest'] = f"@{ctx.user.name}"
+
+                # 当選データベースに登録
+                if str(ctx.author.id) in data.values():
+                    data[str(ctx.user.id)] = n
+
+                else:
+                    data[str(ctx.user.id)] += n
 
             else:
                 status = "はずれ！"
@@ -513,6 +528,7 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{results}\n\n**{status}**",
                                   color=discord.Colour.green())
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
             await ctx.response.send_message(embed=embed)
 
         else:
@@ -531,6 +547,15 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
 
             if word == "しかのこのこのここしたんたん":
                 status = "あたり！"
+                data['win'] += 1
+                data['latest'] = f"@{ctx.user.name}"
+
+                # 当選データベースに登録
+                if str(ctx.author.id) in data.values():
+                    data[str(ctx.user.id)] = 1
+
+                else:
+                    data[str(ctx.user.id)] += 1
 
             else:
                 status = "はずれ！"
@@ -538,7 +563,12 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{word}\n\n**{status}**",
                                   color=discord.Colour.green())
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
             await ctx.response.send_message(embed=embed)
+
+        # データの保存
+        with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
+            json.dump(data, f)
 
 
 # userinfo
