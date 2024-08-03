@@ -14,7 +14,7 @@ import re
 import urllib.parse
 
 # 外部ライブラリ
-from yt_dlp import YoutubeDL # yt-dlp
+from yt_dlp import YoutubeDL  # yt-dlp
 from dotenv import load_dotenv  # python-dotenv
 import google.generativeai as genai  # google-generativeai
 from aiodanbooru.api import DanbooruAPI  # aiodanbooru
