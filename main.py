@@ -1,4 +1,4 @@
-# インポート群
+# 組み込みライブラリ
 from __future__ import unicode_literals
 import discord  # discord.py
 from discord.ui import Select, View
@@ -11,17 +11,19 @@ import aiohttp
 import json
 import requests  # zip用
 import re
+import urllib.parse
 
-from yt_dlp import YoutubeDL
+# 外部ライブラリ
+from yt_dlp import YoutubeDL # yt-dlp
 from dotenv import load_dotenv  # python-dotenv
 import google.generativeai as genai  # google-generativeai
-import urllib.parse
 from aiodanbooru.api import DanbooruAPI  # aiodanbooru
 import scratchattach as scratch3  # scratchattach
 import qrcode  # qrcode
 
-from pagination import Pagination  # pagination.py
-from shika import shika  # shika.py
+# 自作モジュール
+from modules.pagination import Pagination  # modules/pagination.py
+from modules.shika import shika  # modules/shika.py
 
 ##################################################
 ''' 初期設定 '''
