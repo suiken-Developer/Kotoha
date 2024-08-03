@@ -40,7 +40,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.15.2"
+VERSION = "4.15.3"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -518,7 +518,7 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.author.id) in data.values():
+                if str(ctx.user.id) in data.values():
                     data[str(ctx.user.id)] = n
 
                 else:
