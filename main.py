@@ -40,7 +40,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.16.0"
+VERSION = "4.16.1"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -619,7 +619,7 @@ async def shikanoko_ranking(ctx: discord.Interaction):
 
             except Exception:
                 name = "不明なユーザー"
-            
+
             else:
                 name = user.name
 
@@ -633,7 +633,7 @@ async def shikanoko_ranking(ctx: discord.Interaction):
     embed = discord.Embed(title="🦌「しかのこ」ランキング",
                           description=desc,
                           color=discord.Colour.green())
-    embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}")
+    embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}")
     await ctx.response.send_message(embed=embed)
 
 
