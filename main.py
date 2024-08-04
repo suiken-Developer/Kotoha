@@ -20,6 +20,7 @@ import google.generativeai as genai  # google-generativeai
 from aiodanbooru.api import DanbooruAPI  # aiodanbooru
 import scratchattach as scratch3  # scratchattach
 import qrcode  # qrcode
+import psutil  # psutil
 
 # 自作モジュール
 from modules.pagination import Pagination  # modules/pagination.py
@@ -40,7 +41,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.16.1"
+VERSION = "4.17.0"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -446,6 +447,27 @@ async def ping(ctx: discord.Interaction):
     await ctx.response.send_message(embed=embed)
 
 
+# stats
+@tree.command(name="stats", description="Akaneのサーバー情報を見る")
+async def stats(ctx: discord.Interaction):
+    await ctx.response.defer()
+
+    embed = discord.Embed(title="サーバー情報",
+                          description="",
+                          color=0xc8ff00)
+    embed.add_field(name="CPU", value=f"使用率: {psutil.cpu_percent(interval=1)}% ({round(psutil.cpu_freq().current / 1000, 2)}GHz)\n"
+                                      f"温度: {psutil.sensors_temperatures()['coretemp'][0].current}℃")
+    embed.add_field(name="RAM", value=f"使用率: {psutil.virtual_memory().percent}% "
+                                      f"({round(psutil.virtual_memory().used / 1024 ** 3, 1)}/"
+                                      f"{round(psutil.virtual_memory().total / 1024 ** 3, 1)}GB)")
+    embed.add_field(name="ストレージ", value=f"使用率: {psutil.disk_usage('/').percent}% "
+                                        f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
+                                        f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
+    embed.add_field(name="サーバー起動時刻", value=f"{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')}")
+    embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}")
+    await ctx.followup.send(embed=embed)
+
+
 # kuji
 @tree.command(name="kuji", description="おみくじ")
 @discord.app_commands.describe(pcs="引く枚数（1~100）")
@@ -584,6 +606,8 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
 # shikanoko-ranking
 @tree.command(name="shikanoko-ranking", description="ランキング情報")
 async def shikanoko_ranking(ctx: discord.Interaction):
+    await ctx.response.defer()
+
     # データ読み込み
     with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
         data = json.load(f)
@@ -634,7 +658,7 @@ async def shikanoko_ranking(ctx: discord.Interaction):
                           description=desc,
                           color=discord.Colour.green())
     embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}")
-    await ctx.response.send_message(embed=embed)
+    await ctx.followup.send(embed=embed)
 
 
 # userinfo

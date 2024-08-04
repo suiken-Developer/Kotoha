@@ -10,9 +10,14 @@
         "info": "Akane招待リンクを表示します。"
     },
     "ping": {
-	    "category": "🤖Botコマンド",
-	    "usage" : "ping",
-	    "info": "AkaneのPingを表示します。"
+        "category": "🤖Botコマンド",
+        "usage" : "ping",
+        "info": "AkaneのPingを表示します。"
+    },
+    "stats": {
+        "category": "🤖Botコマンド",
+        "usage" : "stats",
+        "info": "Akaneのサーバー情報を表示します。"
     },
     "cat": {
         "category": "⭐機能系コマンド",
