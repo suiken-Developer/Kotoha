@@ -40,7 +40,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.15.4"
+VERSION = "4.15.5"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -533,10 +533,11 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
             for i in results:
                 result += f"・{i}\n"
 
+            probability = round((data['win'] / data['total']) * 100, 2)
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{result}\n**{status}**",
                                   color=discord.Colour.green())
-            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
             await ctx.response.send_message(embed=embed)
 
         else:
@@ -568,10 +569,11 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
             else:
                 status = "はずれ！"
 
+            probability = round((data['win'] / data['total']) * 100, 2)
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{word}\n\n**{status}**",
                                   color=discord.Colour.green())
-            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
             await ctx.response.send_message(embed=embed)
 
         # データの保存
