@@ -6,6 +6,7 @@ import discord.app_commands
 import os
 import random
 import datetime
+from zoneinfo import ZoneInfo  # JST設定用
 import asyncio  # タイマー
 import aiohttp
 import json
@@ -41,7 +42,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.17.0"
+VERSION = "4.17.1"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -464,7 +465,7 @@ async def stats(ctx: discord.Interaction):
                                         f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
                                         f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
     embed.add_field(name="サーバー起動時刻", value=f"{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')}")
-    embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}")
+    embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
     await ctx.followup.send(embed=embed)
 
 
@@ -510,6 +511,8 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     else:
+        await ctx.response.defer()
+
         with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
             data = json.load(f)
 
@@ -560,7 +563,7 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                                   description=f"{result}\n**{status}**",
                                   color=discord.Colour.green())
             embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
-            await ctx.response.send_message(embed=embed)
+            await ctx.followup.send(embed=embed)
 
         else:
             c = "し"
@@ -596,7 +599,7 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                                   description=f"{word}\n\n**{status}**",
                                   color=discord.Colour.green())
             embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
-            await ctx.response.send_message(embed=embed)
+            await ctx.followup.send(embed=embed)
 
         # データの保存
         with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
@@ -634,7 +637,7 @@ async def shikanoko_ranking(ctx: discord.Interaction):
 
         # 自分の順位回収
         if key == str(ctx.user.id):
-            your_rank = f"{current_rank}位 @{ctx.user.name}  {value}回"
+            your_rank = f"{current_rank}位 @{ctx.user.name}  **{value}回**"
 
         if count < 10:
             # ユーザー名に変換
@@ -657,7 +660,7 @@ async def shikanoko_ranking(ctx: discord.Interaction):
     embed = discord.Embed(title="🦌「しかのこ」ランキング",
                           description=desc,
                           color=discord.Colour.green())
-    embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S')}")
+    embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
     await ctx.followup.send(embed=embed)
 
 
