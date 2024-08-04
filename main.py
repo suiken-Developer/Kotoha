@@ -6,6 +6,7 @@ import discord.app_commands
 import os
 import random
 import datetime
+from zoneinfo import ZoneInfo  # JST設定用
 import asyncio  # タイマー
 import aiohttp
 import json
@@ -20,6 +21,7 @@ import google.generativeai as genai  # google-generativeai
 from aiodanbooru.api import DanbooruAPI  # aiodanbooru
 import scratchattach as scratch3  # scratchattach
 import qrcode  # qrcode
+import psutil  # psutil
 
 # 自作モジュール
 from modules.pagination import Pagination  # modules/pagination.py
@@ -40,7 +42,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.15.4"
+VERSION = "4.17.1"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -446,6 +448,27 @@ async def ping(ctx: discord.Interaction):
     await ctx.response.send_message(embed=embed)
 
 
+# stats
+@tree.command(name="stats", description="Akaneのサーバー情報を見る")
+async def stats(ctx: discord.Interaction):
+    await ctx.response.defer()
+
+    embed = discord.Embed(title="サーバー情報",
+                          description="",
+                          color=0xc8ff00)
+    embed.add_field(name="CPU", value=f"使用率: {psutil.cpu_percent(interval=1)}% ({round(psutil.cpu_freq().current / 1000, 2)}GHz)\n"
+                                      f"温度: {psutil.sensors_temperatures()['coretemp'][0].current}℃")
+    embed.add_field(name="RAM", value=f"使用率: {psutil.virtual_memory().percent}% "
+                                      f"({round(psutil.virtual_memory().used / 1024 ** 3, 1)}/"
+                                      f"{round(psutil.virtual_memory().total / 1024 ** 3, 1)}GB)")
+    embed.add_field(name="ストレージ", value=f"使用率: {psutil.disk_usage('/').percent}% "
+                                        f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
+                                        f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
+    embed.add_field(name="サーバー起動時刻", value=f"{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')}")
+    embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
+    await ctx.followup.send(embed=embed)
+
+
 # kuji
 @tree.command(name="kuji", description="おみくじ")
 @discord.app_commands.describe(pcs="引く枚数（1~100）")
@@ -488,6 +511,8 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     else:
+        await ctx.response.defer()
+
         with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
             data = json.load(f)
 
@@ -518,11 +543,11 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.user.id) in data.values():
-                    data[str(ctx.user.id)] += n
+                if str(ctx.user.id) in data['ranking'].values():
+                    data['ranking'][str(ctx.user.id)] += n
 
                 else:
-                    data[str(ctx.user.id)] = n
+                    data['ranking'][str(ctx.user.id)] = n
 
             else:
                 status = "はずれ！"
@@ -533,11 +558,12 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
             for i in results:
                 result += f"・{i}\n"
 
+            probability = round((data['win'] / data['total']) * 100, 2)
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{result}\n**{status}**",
                                   color=discord.Colour.green())
-            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
-            await ctx.response.send_message(embed=embed)
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
+            await ctx.followup.send(embed=embed)
 
         else:
             c = "し"
@@ -559,24 +585,83 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.author.id) in data.values():
-                    data[str(ctx.user.id)] += 1
+                if str(ctx.author.id) in data['ranking'].values():
+                    data['ranking'][str(ctx.user.id)] += 1
 
                 else:
-                    data[str(ctx.user.id)] = 1
+                    data['ranking'][str(ctx.user.id)] = 1
 
             else:
                 status = "はずれ！"
 
+            probability = round((data['win'] / data['total']) * 100, 2)
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{word}\n\n**{status}**",
                                   color=discord.Colour.green())
-            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
-            await ctx.response.send_message(embed=embed)
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
+            await ctx.followup.send(embed=embed)
 
         # データの保存
         with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
             json.dump(data, f)
+
+
+# shikanoko-ranking
+@tree.command(name="shikanoko-ranking", description="ランキング情報")
+async def shikanoko_ranking(ctx: discord.Interaction):
+    await ctx.response.defer()
+
+    # データ読み込み
+    with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
+        data = json.load(f)
+
+    ranking = sorted(data["ranking"].items(), key=lambda x: x[1], reverse=True)
+    # longest_ranking = sorted(data["longest_ranking"].items(), key=lambda x: x[1], reverse=True)
+
+    # embedデータの作成
+    desc = "**[出現回数トップ10]**\n"
+
+    # トップ10の作成
+    current_rank = 1
+    previous_value = None
+    count = 0
+    your_rank = "集計対象外"
+
+    for i, (key, value) in enumerate(ranking):
+        # 値が異なる場合は順位+1
+        if value != previous_value:
+            if count >= 10:
+                break
+
+            current_rank = i + 1
+
+        # 自分の順位回収
+        if key == str(ctx.user.id):
+            your_rank = f"{current_rank}位 @{ctx.user.name}  **{value}回**"
+
+        if count < 10:
+            # ユーザー名に変換
+            try:
+                user = await client.fetch_user(int(key))
+
+            except Exception:
+                name = "不明なユーザー"
+
+            else:
+                name = user.name
+
+            desc += f"{current_rank}位: @{name}  **{value}回**\n"
+            count += 1
+
+        previous_value = value
+
+    desc += f"\n**[あなたの順位]**\n{your_rank}"
+
+    embed = discord.Embed(title="🦌「しかのこ」ランキング",
+                          description=desc,
+                          color=discord.Colour.green())
+    embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
+    await ctx.followup.send(embed=embed)
 
 
 # userinfo
