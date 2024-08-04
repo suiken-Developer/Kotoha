@@ -1,4 +1,4 @@
-# インポート群
+# 組み込みライブラリ
 from __future__ import unicode_literals
 import discord  # discord.py
 from discord.ui import Select, View
@@ -11,17 +11,19 @@ import aiohttp
 import json
 import requests  # zip用
 import re
+import urllib.parse
 
-from yt_dlp import YoutubeDL
+# 外部ライブラリ
+from yt_dlp import YoutubeDL  # yt-dlp
 from dotenv import load_dotenv  # python-dotenv
 import google.generativeai as genai  # google-generativeai
-import urllib.parse
 from aiodanbooru.api import DanbooruAPI  # aiodanbooru
 import scratchattach as scratch3  # scratchattach
 import qrcode  # qrcode
 
-from pagination import Pagination  # pagination.py
-from shikanoko import shika  # shikanoko.py
+# 自作モジュール
+from modules.pagination import Pagination  # modules/pagination.py
+from modules.shika import shika  # modules/shika.py
 
 ##################################################
 ''' 初期設定 '''
@@ -38,7 +40,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.14.1"
+VERSION = "4.15.4"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -476,18 +478,23 @@ async def kuji(ctx: discord.Interaction, pcs: int = 1):
 
 # shikanoko
 @tree.command(name="shikanoko", description="「しかのこのこのここしたんたん」を引き当てよう")
-@discord.app_commands.describe(pcs="回数（1~10）")
+@discord.app_commands.describe(pcs="回数（1~20）")
 async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
-    # エラー: 枚数が範囲外
-    if not 0 < pcs < 11:
+    # エラー: 回数が範囲外
+    if not 0 < pcs < 21:
         embed = discord.Embed(title=":x: エラー",
-                              description="回数は1~10で指定してください",
+                              description="回数は1~20で指定してください",
                               color=0xff0000)
         await ctx.response.send_message(embed=embed, ephemeral=True)
 
     else:
+        with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
+            data = json.load(f)
+
+        data['total'] += pcs
+
         if pcs > 1:
-            results = ""
+            results = []
 
             for i in range(pcs):
                 c = "し"
@@ -498,21 +505,38 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
 
                     if c == "END":
                         word = "".join(words)
-                        results += f"・{word}\n"
+                        results.append(word)
                         break
 
                     else:
                         words.append(c)
 
             if "しかのこのこのここしたんたん" in results:
+                n = results.count("しかのこのこのここしたんたん")
                 status = "あたり！"
+                data['win'] += n
+                data['latest'] = f"@{ctx.user.name}"
+
+                # 当選データベースに登録
+                if str(ctx.user.id) in data.values():
+                    data[str(ctx.user.id)] += n
+
+                else:
+                    data[str(ctx.user.id)] = n
 
             else:
                 status = "はずれ！"
 
+            # 結果を変数にまとめる
+            result = ""
+
+            for i in results:
+                result += f"・{i}\n"
+
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
-                                  description=f"{results}\n\n**{status}**",
+                                  description=f"{result}\n**{status}**",
                                   color=discord.Colour.green())
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
             await ctx.response.send_message(embed=embed)
 
         else:
@@ -531,6 +555,15 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
 
             if word == "しかのこのこのここしたんたん":
                 status = "あたり！"
+                data['win'] += 1
+                data['latest'] = f"@{ctx.user.name}"
+
+                # 当選データベースに登録
+                if str(ctx.author.id) in data.values():
+                    data[str(ctx.user.id)] += 1
+
+                else:
+                    data[str(ctx.user.id)] = 1
 
             else:
                 status = "はずれ！"
@@ -538,7 +571,12 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                   description=f"{word}\n\n**{status}**",
                                   color=discord.Colour.green())
+            embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり 直近の当選者: {data['latest']}")
             await ctx.response.send_message(embed=embed)
+
+        # データの保存
+        with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
+            json.dump(data, f)
 
 
 # userinfo
