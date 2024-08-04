@@ -21,18 +21,33 @@
     },
     "dice": {
         "category": "⭐機能系コマンド",
-        "usage" : "dice",
-        "info": "1~6の目があるサイコロを振ります。"
+        "usage" : "dice [個数(1-100)] [出目(1-999)]",
+        "info": "サイコロを振ります。"
     },
     "kuji": {
         "category": "⭐機能系コマンド",
-        "usage" : "kuji",
+        "usage" : "kuji [枚数(1-100)]",
         "info": "おみくじを引きます。"
     },
     "gosen": {
         "category": "⭐機能系コマンド",
         "usage" : "gosen",
         "info": "「5000兆円欲しい！」を作成します。"
+    },
+    "qr": {
+        "category": "⭐機能系コマンド",
+        "usage" : "qr",
+        "info": "QRコードを作成します。"
+    },
+    "shikanoko": {
+          "category": "⭐機能系コマンド",
+          "usage" : "shikanoko [回数(1-20)]",
+          "info": "「しかのこのこのここしたんたん」を引き当てよう"
+    },
+    "shikanoko-ranking": {
+          "category": "⭐機能系コマンド",
+          "usage" : "shikanoko-ranking",
+          "info": "「しかのこ」ランキングを表示します。"
     },
     "janken": {
         "category": "⭐機能系コマンド",

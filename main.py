@@ -40,7 +40,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.15.5"
+VERSION = "4.16.0"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -518,11 +518,11 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.user.id) in data.values():
-                    data[str(ctx.user.id)] += n
+                if str(ctx.user.id) in data['ranking'].values():
+                    data['ranking'][str(ctx.user.id)] += n
 
                 else:
-                    data[str(ctx.user.id)] = n
+                    data['ranking'][str(ctx.user.id)] = n
 
             else:
                 status = "はずれ！"
@@ -560,11 +560,11 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.author.id) in data.values():
-                    data[str(ctx.user.id)] += 1
+                if str(ctx.author.id) in data['ranking'].values():
+                    data['ranking'][str(ctx.user.id)] += 1
 
                 else:
-                    data[str(ctx.user.id)] = 1
+                    data['ranking'][str(ctx.user.id)] = 1
 
             else:
                 status = "はずれ！"
@@ -579,6 +579,62 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
         # データの保存
         with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
             json.dump(data, f)
+
+
+# shikanoko-ranking
+@tree.command(name="shikanoko-ranking", description="ランキング情報")
+async def shikanoko_ranking(ctx: discord.Interaction):
+    # データ読み込み
+    with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
+        data = json.load(f)
+
+    ranking = sorted(data["ranking"].items(), key=lambda x: x[1], reverse=True)
+    # longest_ranking = sorted(data["longest_ranking"].items(), key=lambda x: x[1], reverse=True)
+
+    # embedデータの作成
+    desc = "**[出現回数トップ10]**\n"
+
+    # トップ10の作成
+    current_rank = 1
+    previous_value = None
+    count = 0
+    your_rank = "集計対象外"
+
+    for i, (key, value) in enumerate(ranking):
+        # 値が異なる場合は順位+1
+        if value != previous_value:
+            if count >= 10:
+                break
+
+            current_rank = i + 1
+
+        # 自分の順位回収
+        if key == str(ctx.user.id):
+            your_rank = f"{current_rank}位 @{ctx.user.name}  {value}回"
+
+        if count < 10:
+            # ユーザー名に変換
+            try:
+                user = await client.fetch_user(int(key))
+
+            except Exception:
+                name = "不明なユーザー"
+            
+            else:
+                name = user.name
+
+            desc += f"{current_rank}位: @{name}  **{value}回**\n"
+            count += 1
+
+        previous_value = value
+
+    desc += f"\n**[あなたの順位]**\n{your_rank}"
+
+    embed = discord.Embed(title="🦌「しかのこ」ランキング",
+                          description=desc,
+                          color=discord.Colour.green())
+    embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now().strftime("%Y/%m/%d %H:%M:%S")}")
+    await ctx.response.send_message(embed=embed)
 
 
 # userinfo
