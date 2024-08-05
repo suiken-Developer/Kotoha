@@ -4,6 +4,7 @@ import datetime
 import os
 from itertools import cycle
 import random
+import json
 
 # 外部ライブラリ
 import discord
@@ -27,16 +28,19 @@ VERSION = os.getenv("VERSION")
 
 ##################################################
 
+# ステータスリストをcycleで生成
+with open("data/status.json", "r", encoding="UTF-8") as f:
+    data = json.load(f)
+
+STATUS_LIST = cycle(["❓/help", f"{data['bot_guilds']} Servers", f"{data['bot_members']} Users", f"Version {VERSION}"])
+
 bot = commands.Bot(command_prefix=PREFIX, intents=discord.Intents.all())
 
 
 # 起動通知
 @bot.event
 async def on_ready():
-    global bot_guilds, bot_members
-
     print("[Akane] ログインしました")
-    bot_guilds = len(bot.guilds)
     bot_members = []
 
     for guild in bot.guilds:
@@ -47,16 +51,27 @@ async def on_ready():
             else:
                 bot_members.append(member)
 
+    # jsonにこの情報を出力しておく
+    with open("data/status.json", "r", encoding="UTF-8") as f:
+        s_data = json.load(f)
+
+    s_data["bot_guilds"] = len(bot.guilds)
+    s_data["bot_members"] = len(bot_members)
+    # s_data["bot_realmembers"] = list(set(bot_members))
+
+    # データの保存
+    with open("data/status.json", "w", encoding="UTF-8") as f:
+        json.dump(s_data, f)
+
     activity = discord.CustomActivity(name="✅ 起動完了")
     await bot.change_presence(activity=activity)
-    change_activity.start()
 
     # 起動メッセージを専用サーバーに送信（チャンネルが存在しない場合、スルー）
     try:
         ready_log = await bot.fetch_channel(STARTUP_LOG)
         embed = discord.Embed(title="Akane 起動完了",
                               description=f"**Akane#0940** が起動しました。"
-                              f"\n```サーバー数: {bot_guilds}\n"
+                              f"\n```サーバー数: {len(bot_guilds)}\n"
                               f"ユーザー数: {len(bot_members)}```",
                               timestamp=datetime.datetime.now())
         embed.set_footer(text=f"Akane - Ver{VERSION}")
@@ -65,13 +80,14 @@ async def on_ready():
     except Exception:
         pass
 
+    # 10秒後からステータス変更開始
+    await asyncio.sleep(10)
+    change_activity.start()
+
 
 # Activity自動変更
 @tasks.loop(seconds=10)
 async def change_activity():
-    global bot_guilds, bot_members
-
-    STATUS_LIST = cycle(["❓/help", f"{bot_guilds} Servers", f"{len(bot_members)} Users", f"Version {VERSION}"])
     activity = discord.CustomActivity(name=next(STATUS_LIST))
     await bot.change_presence(activity=activity)
 
