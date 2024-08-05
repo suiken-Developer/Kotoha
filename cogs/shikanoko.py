@@ -82,7 +82,7 @@ class Shikanoko(commands.Cog):
                     data['latest'] = f"@{ctx.user.name}"
 
                     # 当選データベースに登録
-                    if str(ctx.user.id) in data['ranking'].values():
+                    if str(ctx.user.id) in data['ranking'].keys():
                         data['ranking'][str(ctx.user.id)] += n
 
                     else:
@@ -124,7 +124,7 @@ class Shikanoko(commands.Cog):
                     data['latest'] = f"@{ctx.user.name}"
 
                     # 当選データベースに登録
-                    if str(ctx.author.id) in data['ranking'].values():
+                    if str(ctx.author.id) in data['ranking'].keys():
                         data['ranking'][str(ctx.user.id)] += 1
 
                     else:
