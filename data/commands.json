@@ -69,19 +69,14 @@
           "usage" : "ytdl <URL>",
           "info": "YouTube動画のダウンロードリンクを取得します"
     },
-    "scinfo": {
+    "scratch userinfo": {
           "category": "⭐機能系コマンド",
-          "usage" : "scinfo <ユーザー名>",
+          "usage" : "scratch userinfo <ユーザー名>",
           "info": "Scratchのユーザー情報を取得します"
     },
-    "scff": {
+    "scratch ff": {
           "category": "⭐機能系コマンド",
-          "usage" : "scff <モード> <対象ユーザー> <確認するユーザー>",
+          "usage" : "scratch ff <モード> <対象ユーザー> <確認するユーザー>",
           "info": "Scratchのユーザーフォロー・被フォロー状況を取得します"
-    },
-    "fixtweet": {
-          "category": "⭐機能系コマンド",
-          "usage" : "fixtweet",
-          "info": "ツイートの自動展開機能を有効化・無効化します"
     }
 }
