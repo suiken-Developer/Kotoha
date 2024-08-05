@@ -18,11 +18,10 @@ class YouTube(commands.Cog):
     async def on_ready(self):
         print("YouTubeCog on ready")
 
-
     #########################
 
-
     # yt-dlp
+
     @app_commands.command(name="ytdl", description="YouTube動画のダウンロードリンクを取得します")
     @app_commands.checks.cooldown(1, 30)
     @app_commands.describe(url="動画URLを指定")
@@ -32,13 +31,13 @@ class YouTube(commands.Cog):
         discord.app_commands.Choice(name='soundonly', value=2),
     ])
     async def ytdl(self, ctx: discord.Interaction, url: str,
-                option: discord.app_commands.Choice[int] = None):
+                   option: discord.app_commands.Choice[int] = None):
         await ctx.response.defer()
 
         if url.startswith("https://www.youtube.com/playlist"):
             embed = discord.Embed(title=":x: エラー",
-                                description="プレイリストのダウンロードリンクは取得できません",
-                                color=0xff0000)
+                                  description="プレイリストのダウンロードリンクは取得できません",
+                                  color=0xff0000)
             await ctx.followup.send(embed=embed, ephemeral=True)
 
         else:
@@ -65,8 +64,8 @@ class YouTube(commands.Cog):
 
             except Exception:
                 embed = discord.Embed(title=":x: エラー",
-                                    description="エラーが発生しました。",
-                                    color=0xff0000)
+                                      description="エラーが発生しました。",
+                                      color=0xff0000)
                 await ctx.followup.send(embed=embed, ephemeral=True)
 
             else:
@@ -79,12 +78,10 @@ class YouTube(commands.Cog):
                     color=discord.Colour.red())
                 await ctx.followup.send(embed=embed, ephemeral=True)
 
-
     #########################
 
     ''' クールダウン '''
 
-    
     @ytdl.error
     async def on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.checks.CommandOnCooldown):

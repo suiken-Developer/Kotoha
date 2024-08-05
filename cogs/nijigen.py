@@ -22,11 +22,10 @@ class Nijigen(commands.Cog):
     async def on_ready(self):
         print("NijigenCog on ready")
 
-
     #########################
 
-
     # danbooru
+
     @app_commands.command(name="danbooru", description="Danbooruで画像検索します")
     @app_commands.checks.cooldown(2, 15)
     @app_commands.describe(tags="タグを半角カンマ区切りで指定")
@@ -44,13 +43,13 @@ class Nijigen(commands.Cog):
 
             except Exception:
                 embed = discord.Embed(title=":x: エラー",
-                                    description="検索に失敗しました。レート制限の可能性があります。",
-                                    color=0xff0000)
+                                      description="検索に失敗しました。レート制限の可能性があります。",
+                                      color=0xff0000)
                 await ctx.followup.send(embed=embed, ephemeral=True)
 
             else:
                 embed = discord.Embed(title="検索結果",
-                                    description="オプション: ランダム検索")
+                                      description="オプション: ランダム検索")
                 embed.set_image(url=post.media_url)
                 embed.set_footer(text="Powered by Danbooru")
                 await ctx.followup.send(embed=embed)
@@ -64,16 +63,16 @@ class Nijigen(commands.Cog):
 
             except Exception:
                 embed = discord.Embed(
-                title=":x: エラー",
-                description="検索に失敗しました。タグが正しくないか、レート制限の可能性があります。\n"
-                            "利用可能はタグは以下から確認できます。\n\n"
-                            "※検索のコツ※\n"
-                            "・キャラクター名をローマ字、アンダーバー区切りにする（例: kotonoha_akane）\n"
-                            "・作品名を正しい英語表記 or ローマ字表記にする",
-                color=0xff0000)
+                    title=":x: エラー",
+                    description="検索に失敗しました。タグが正しくないか、レート制限の可能性があります。\n"
+                                "利用可能はタグは以下から確認できます。\n\n"
+                                "※検索のコツ※\n"
+                                "・キャラクター名をローマ字、アンダーバー区切りにする（例: kotonoha_akane）\n"
+                                "・作品名を正しい英語表記 or ローマ字表記にする",
+                    color=0xff0000)
                 button = discord.ui.Button(label="ページを開く",
-                                        style=discord.ButtonStyle.link,
-                                        url="https://danbooru.donmai.us/tags")
+                                           style=discord.ButtonStyle.link,
+                                           url="https://danbooru.donmai.us/tags")
                 view = discord.ui.View()
                 view.add_item(button)
                 await ctx.followup.send(embed=embed, view=view, ephemeral=True)
@@ -84,8 +83,8 @@ class Nijigen(commands.Cog):
                 embed.set_footer(text="Powered by Danbooru")
                 await ctx.followup.send(embed=embed)
 
-
     # anime
+
     @app_commands.command(name="animesearch", description="画像からアニメを特定します")
     @app_commands.checks.cooldown(2, 15)
     @app_commands.describe(image="画像をアップロード")
@@ -94,7 +93,7 @@ class Nijigen(commands.Cog):
 
         try:
             r = requests.get("https://api.trace.moe/search?anilistInfo&"
-                            f"url={urllib.parse.quote_plus(image.url)}").json()
+                             f"url={urllib.parse.quote_plus(image.url)}").json()
 
             aninames = [entry['anilist']['title']['native'] for entry in r['result']]
 
@@ -107,18 +106,18 @@ class Nijigen(commands.Cog):
 
         except Exception:
             embed = discord.Embed(title=":x: エラー",
-                                description="検索に失敗しました。画像が壊れていないことを確認したうえで、しばらく時間をおいてください。",
-                                color=0xff0000)
+                                  description="検索に失敗しました。画像が壊れていないことを確認したうえで、しばらく時間をおいてください。",
+                                  color=0xff0000)
             await ctx.followup.send(embed=embed, ephemeral=True)
 
         else:
             embed = discord.Embed(title="検索結果",
-                                description=f"{len(aninames)}件の候補が見つかりました。\n```{result}```")
+                                  description=f"{len(aninames)}件の候補が見つかりました。\n```{result}```")
             embed.set_footer(text="Powered by Trace.moe")
             await ctx.followup.send(embed=embed)
 
-
     # クールダウン
+
     @danbooru.error
     async def danbooru_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.checks.CommandOnCooldown):
@@ -130,12 +129,10 @@ class Nijigen(commands.Cog):
                                   color=0xff0000)
             embed.set_footer(text=f"Report ID: {ctx.id}")
             return await ctx.response.send_message(embed=embed, ephemeral=True)
-        
 
     #########################
 
     ''' クールダウン '''
-
 
     @animesearch.error
     async def animesearch_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

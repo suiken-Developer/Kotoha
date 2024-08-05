@@ -1,7 +1,6 @@
 import random
 
 import discord
-from discord import app_commands
 from discord.ext import commands  # Bot Commands Frameworkをインポート
 
 
@@ -19,9 +18,7 @@ class Akane_talks(commands.Cog):
     async def on_ready(self):
         print("akane-talksCog on ready")
 
-
     #########################
-
 
     '''
     # せやな
@@ -29,18 +26,17 @@ class Akane_talks(commands.Cog):
     async def seyana(self, message):
         if message.author.bot or message.mention_everyone:
             return
-        
+
         elif message.content == "せやな":
             await message.channel.send("<:Seyana:851104856110399488>")
     '''
 
-        
     # #akane-talk
     @commands.Cog.listener("on_message")
     async def talk(self, message):
         if message.author.bot or message.mention_everyone:
             return
-        
+
         elif message.guild:
             if message.channel.name == "akane-talk":
                 reps = [
@@ -56,10 +52,10 @@ class Akane_talks(commands.Cog):
                 i = random.choice(reps)
                 await message.channel.send(i)
 
-
     #########################
 
     # エラー出力
+
     async def cog_command_error(self, ctx: discord.Interaction, error):
         embed = discord.Embed(title="エラー",
                               description="不明なエラーが発生しました。",

@@ -4,7 +4,6 @@ import re
 import datetime
 
 import discord
-from discord import app_commands
 from discord.ui import Select, View
 from discord.ext import commands  # Bot Commands Frameworkをインポート
 import aiohttp  # aiohttp
@@ -245,19 +244,16 @@ class Akane_ai(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
     # Cog読み込み時
     @commands.Cog.listener()
     async def on_ready(self):
         print("akane-aiCog on ready")
-
 
     # help
     @commands.command()
     async def aihelp(self, ctx: discord.Interaction):
         embed = help_embed(1)
         await ctx.reply(embed=embed, mention_author=False)
-
 
     # count
     @commands.command()
@@ -267,11 +263,10 @@ class Akane_ai(commands.Cog):
                 ai_data = json.load(f)
 
             await ctx.reply(f"あなたの総会話回数: {ai_data[0]}回（保存中の会話履歴: 直近{min(len(ai_data) - 2, 30)}件）",
-                                mention_author=False)
+                            mention_author=False)
 
         else:
             await ctx.reply("あなたの総会話回数: 0回", mention_author=False)
-
 
     # clear
     @commands.command()
@@ -290,7 +285,6 @@ class Akane_ai(commands.Cog):
         else:
             await ctx.reply(":x: まだ会話を行っていません", mention_author=False)
 
-
     # chara
     @commands.command()
     async def chara(self, ctx: discord.Interaction):
@@ -308,12 +302,11 @@ class Akane_ai(commands.Cog):
                 chara_present = CHARAS[ai_data[1]]
 
             await ctx.reply("変更するキャラクターを選択してください\n"
-                                f"現在のキャラクター: **{chara_present}**\n\n"
-                                ":warning: キャラクターを変更すると会話履歴がリセットされます", view=view)
+                            f"現在のキャラクター: **{chara_present}**\n\n"
+                            ":warning: キャラクターを変更すると会話履歴がリセットされます", view=view)
 
         else:
             await ctx.reply(":x: まだ会話を行っていません", mention_author=False)
-
 
     # stats
     @commands.command()
@@ -338,13 +331,12 @@ class Akane_ai(commands.Cog):
 
         else:
             embed = discord.Embed(title="Akane AI 統計情報",
-                                    description=f"**総会話回数**\n{total_talks}回\n\n"
-                                                f"**総ユーザー数**\n{total_users}人\n\n"
-                                                f"**AIモデル**\n{AIMODEL_NAME}\n\n",
-                                    color=discord.Colour.green())
+                                  description=f"**総会話回数**\n{total_talks}回\n\n"
+                                              f"**総ユーザー数**\n{total_users}人\n\n"
+                                              f"**AIモデル**\n{AIMODEL_NAME}\n\n",
+                                  color=discord.Colour.green())
             embed.set_footer(text=f"Akane v{VERSION}")
             await ctx.reply(embed=embed, mention_author=False)
-    
 
     # #akane-ai
     @commands.Cog.listener("on_message")
@@ -486,24 +478,24 @@ class Akane_ai(commands.Cog):
                         # エラーログ出力
                         if str(response[1]).startswith("429"):
                             embed = discord.Embed(title="混雑中",
-                                                    description="Akane AIが混雑しています。**5秒程度**お待ちください。",
-                                                    color=0xff0000)
+                                                  description="Akane AIが混雑しています。**5秒程度**お待ちください。",
+                                                  color=0xff0000)
                             embed.set_footer(text=f"Report ID: {message.id}")
                             await message.reply(embed=embed, mention_author=False)
 
                         elif str(response[1]).startswith("500"):
                             embed = discord.Embed(title="混雑中またはエラー",
-                                                    description="サーバーが混雑しているか、内部エラーが発生しています。\n"
-                                                                "**30分～1時間程度**時間を空けると完全に解決される場合がありますが、このままご利用いただけます。",
-                                                    color=0xff0000)
+                                                  description="サーバーが混雑しているか、内部エラーが発生しています。\n"
+                                                              "**30分～1時間程度**時間を空けると完全に解決される場合がありますが、このままご利用いただけます。",
+                                                  color=0xff0000)
                             embed.set_footer(text=f"Report ID: {message.id}")
                             await message.reply(embed=embed, mention_author=False)
 
                         # 例外エラー
                         else:
                             embed = discord.Embed(title="エラー",
-                                                    description="不明なエラーが発生しました。しばらく時間を空けるか、メッセージ内容を変えてください。",
-                                                    color=0xff0000)
+                                                  description="不明なエラーが発生しました。しばらく時間を空けるか、メッセージ内容を変えてください。",
+                                                  color=0xff0000)
                             embed.set_footer(text=f"Report ID: {message.id}")
                             await message.reply(embed=embed, mention_author=False)
 
@@ -516,16 +508,15 @@ class Akane_ai(commands.Cog):
                         # エラーを専用チャンネルに投げておく
                         error_log = self.bot.get_channel(ERROR_LOG)
                         embed = discord.Embed(title="エラー",
-                                                description="AIチャットにてエラーが発生しました。",
-                                                timestamp=datetime.datetime.now(),
-                                                color=0xff0000)
+                                              description="AIチャットにてエラーが発生しました。",
+                                              timestamp=datetime.datetime.now(),
+                                              color=0xff0000)
                         embed.add_field(name="メッセージ内容", value=value)
                         embed.add_field(name="エラー内容", value=response[1])
                         embed.add_field(name="ギルドとチャンネル", value=f"{message.guild.name} (ID: {message.guild.id})\n#{message.channel.id}")
                         embed.add_field(name="ユーザー", value=f"{message.author.mention} (ID: {message.author.id})")
                         embed.set_footer(text=f"Report ID: {message.id}")
                         await error_log.send(embed=embed)
-
 
     #########################
 

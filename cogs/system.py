@@ -37,11 +37,10 @@ class System(commands.Cog):
     async def on_ready(self):
         print("SystemCog on ready")
 
-
     #########################
 
-
     # help
+
     @app_commands.command(name="help", description="Akaneのコマンド一覧を表示します")
     @app_commands.describe(command="指定したコマンドの説明を表示します")
     async def help(self, ctx: discord.Interaction, command: str = None):
@@ -89,8 +88,8 @@ class System(commands.Cog):
 
             await Pagination(ctx, get_page).navegate()
 
-
     # ping
+
     @app_commands.command(name="ping", description="AkaneのPingを確認するで")
     async def ping(self, ctx: discord.Interaction):
         embed = discord.Embed(title="Pong!",
@@ -98,29 +97,29 @@ class System(commands.Cog):
                               color=0xc8ff00)
         await ctx.response.send_message(embed=embed)
 
-
     # stats
+
     @app_commands.command(name="stats", description="Akaneのサーバー情報を見る")
     async def stats(self, ctx: discord.Interaction):
         await ctx.response.defer()
 
         embed = discord.Embed(title="サーバー情報",
-                            description="",
-                            color=0xc8ff00)
+                              description="",
+                              color=0xc8ff00)
         embed.add_field(name="CPU", value=f"使用率: {psutil.cpu_percent(interval=1)}% ({round(psutil.cpu_freq().current / 1000, 2)}GHz)\n"
-                                        f"温度: {psutil.sensors_temperatures()['coretemp'][0].current}℃")
+                                          f"温度: {psutil.sensors_temperatures()['coretemp'][0].current}℃")
         embed.add_field(name="RAM", value=f"使用率: {psutil.virtual_memory().percent}% "
-                                        f"({round(psutil.virtual_memory().used / 1024 ** 3, 1)}/"
-                                        f"{round(psutil.virtual_memory().total / 1024 ** 3, 1)}GB)")
+                                          f"({round(psutil.virtual_memory().used / 1024 ** 3, 1)}/"
+                                          f"{round(psutil.virtual_memory().total / 1024 ** 3, 1)}GB)")
         embed.add_field(name="ストレージ", value=f"使用率: {psutil.disk_usage('/').percent}% "
-                                            f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
-                                            f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
+                        f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
+                        f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
         embed.add_field(name="サーバー起動時刻", value=f"{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')}")
         embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
         await ctx.followup.send(embed=embed)
 
-
     # invite
+
     @app_commands.command(name="invite", description="Akaneの招待リンクを表示するで")
     @app_commands.guilds(785105916130754571)
     async def invite(self, ctx: discord.Interaction):
@@ -133,11 +132,9 @@ class System(commands.Cog):
         view.add_item(button)
         await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
 
-
     #########################
 
     ''' クールダウン '''
-
 
     @stats.error
     async def userinfo_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

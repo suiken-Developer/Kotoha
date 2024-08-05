@@ -20,11 +20,10 @@ class User(commands.Cog):
     async def on_ready(self):
         print("UserCog on ready")
 
-
     #########################
 
-
     # userinfo
+
     @app_commands.command(name="userinfo", description="ユーザー情報を取得するで")
     @app_commands.checks.cooldown(2, 15)
     @app_commands.describe(user="ユーザーをメンションまたはユーザーIDで指定")
@@ -39,14 +38,14 @@ class User(commands.Cog):
         # できなかったらエラー出す
         except Exception:
             embed = discord.Embed(title=":x: エラー",
-                                description="そのユーザーを取得できませんでした",
-                                color=0xff0000)
+                                  description="そのユーザーを取得できませんでした",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
             embed = discord.Embed(title="ID",
-                                description=target,
-                                color=discord.Colour.green())
+                                  description=target,
+                                  color=discord.Colour.green())
             try:
                 embed.set_author(name=user, icon_url=user.avatar_url)
                 embed.set_thumbnail(url=user.avatar_url)
@@ -68,8 +67,8 @@ class User(commands.Cog):
 
             await ctx.response.send_message(embed=embed)
 
-
     # unban
+
     @app_commands.command(name="unban", description="ユーザーのBAN解除をします")
     @app_commands.checks.cooldown(2, 15)
     @app_commands.default_permissions(administrator=True)
@@ -77,8 +76,8 @@ class User(commands.Cog):
     async def unban(self, ctx: discord.Interaction, user: str):
         if not ctx.guild:
             embed = discord.Embed(title=":x: エラー",
-                                description="このコマンドはDMで使用できません",
-                                color=0xff0000)
+                                  description="このコマンドはDMで使用できません",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
@@ -91,8 +90,8 @@ class User(commands.Cog):
             # できなかったらエラー出す
             except Exception:
                 embed = discord.Embed(title=":x: エラー",
-                                    description="そのユーザーを取得できませんでした",
-                                    color=0xff0000)
+                                      description="そのユーザーを取得できませんでした",
+                                      color=0xff0000)
                 await ctx.response.send_message(embed=embed, ephemeral=True)
 
             else:
@@ -101,15 +100,15 @@ class User(commands.Cog):
 
                 except Exception:
                     embed = discord.Embed(title=":x: エラー",
-                                        description="そのユーザーをBAN解除できません",
-                                        color=0xff0000)
+                                          description="そのユーザーをBAN解除できません",
+                                          color=0xff0000)
                     await ctx.response.send_message(embed=embed, ephemeral=True)
 
                 else:
                     embed = discord.Embed(title=":white_check_mark: 成功",
-                                        description="BAN解除が完了しました。\n",
-                                        timestamp=datetime.datetime.now(),
-                                        color=discord.Colour.green())
+                                          description="BAN解除が完了しました。\n",
+                                          timestamp=datetime.datetime.now(),
+                                          color=discord.Colour.green())
                     try:
                         embed.set_thumbnail(url=user.avatar_url)
 
@@ -129,11 +128,9 @@ class User(commands.Cog):
                                     inline=False)
                     await ctx.response.send_message(embed=embed)
 
-
     ##################################################
 
     ''' クールダウン '''
-
 
     @userinfo.error
     async def userinfo_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
@@ -146,7 +143,6 @@ class User(commands.Cog):
                                   color=0xff0000)
             embed.set_footer(text=f"Report ID: {ctx.id}")
             return await ctx.response.send_message(embed=embed, ephemeral=True)
-        
 
     @unban.error
     async def unban_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

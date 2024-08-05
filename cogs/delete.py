@@ -19,9 +19,7 @@ class Delete(commands.Cog):
     async def on_ready(self):
         print("DeleteCog on ready")
 
-
     #########################
-
 
     # delete
     @app_commands.command(name="delete", description="10秒以上前のメッセージを削除します")
@@ -31,14 +29,14 @@ class Delete(commands.Cog):
     async def delete(self, ctx: discord.Interaction, num: int):
         if not ctx.guild:
             embed = discord.Embed(title=":x: エラー",
-                                description="このコマンドはDMで使用できません",
-                                color=0xff0000)
+                                  description="このコマンドはDMで使用できません",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         elif num > 100:
             embed = discord.Embed(title=":x: エラー",
-                                description="100件を超えるメッセージを削除することはできません",
-                                color=0xff0000)
+                                  description="100件を超えるメッセージを削除することはできません",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
@@ -51,21 +49,19 @@ class Delete(commands.Cog):
 
             except Exception:
                 embed = discord.Embed(title=":x: エラー",
-                                    description="エラーが発生しました",
-                                    color=0xff0000)
+                                      description="エラーが発生しました",
+                                      color=0xff0000)
                 await ctx.followup.send(embed=embed, ephemeral=True)
 
             else:
                 embed = discord.Embed(title=":white_check_mark: 成功",
-                                    description=f"`{len(deleted)}`件のメッセージを削除しました",
-                                    color=discord.Colour.green())
+                                      description=f"`{len(deleted)}`件のメッセージを削除しました",
+                                      color=discord.Colour.green())
                 await ctx.followup.send(embed=embed, ephemeral=True)
-
 
     #########################
 
     ''' クールダウン '''
-
 
     @delete.error
     async def on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

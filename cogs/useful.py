@@ -37,8 +37,8 @@ class QRCode(discord.ui.Modal, title='QRコード作成'):
 
         except Exception:
             embed = discord.Embed(title=":x: エラー",
-                                description="作成に失敗しました。文字列を短くするか、変更してください。",
-                                color=0xff0000)
+                                  description="作成に失敗しました。文字列を短くするか、変更してください。",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
@@ -50,8 +50,8 @@ class QRCode(discord.ui.Modal, title='QRコード作成'):
     async def on_error(
             self, ctx: discord.Interaction, error: Exception) -> None:
         embed = discord.Embed(title=":x: エラー",
-                            description="作成に失敗しました。文字列を短くするか、変更してください。",
-                            color=0xff0000)
+                              description="作成に失敗しました。文字列を短くするか、変更してください。",
+                              color=0xff0000)
         await ctx.response.send_message(embed=embed, ephemeral=True)
         print(error)
 
@@ -70,22 +70,19 @@ class Useful(commands.Cog):
     async def on_ready(self):
         print("UsefulCog on ready")
 
-
     #########################
 
-
     # QRCode
+
     @app_commands.command(name="qr", description="QRコード作成")
     @app_commands.checks.cooldown(2, 15)
     async def qr(self, ctx: discord.Interaction):
         await ctx.response.send_modal(QRCode())
 
-
     #########################
 
     ''' クールダウン '''
 
-    
     @qr.error
     async def on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.checks.CommandOnCooldown):

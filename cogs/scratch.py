@@ -13,20 +13,19 @@ class Scratch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
     # Cog読み込み時
+
     @commands.Cog.listener()
     async def on_ready(self):
         print("ScratchCog on ready")
-
 
     #########################
 
     # /scratchコマンドをグループ化
     group = app_commands.Group(name="scratch", description="Scratch関係のコマンド")
 
-
     # userinfo
+
     @group.command(name="userinfo", description="Scratchのユーザー情報を取得します")
     @app_commands.checks.cooldown(2, 10)
     @app_commands.describe(user="ユーザー名")
@@ -88,8 +87,8 @@ class Scratch(commands.Cog):
 
             await ctx.followup.send(embed=embed)
 
-
     # ff
+
     @group.command(name="ff", description="Scratchの特定ユーザーがフォロー・フォロワーか確認します")
     @app_commands.checks.cooldown(2, 10)
     @app_commands.describe(mode="モード選択")
@@ -155,12 +154,10 @@ class Scratch(commands.Cog):
                                           color=discord.Colour.green())
                     await ctx.followup.send(embed=embed)
 
-
     #########################
 
     ''' クールダウン '''
 
-    
     @scratch_userinfo.error
     async def userinfo_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.checks.CommandOnCooldown):
@@ -172,7 +169,6 @@ class Scratch(commands.Cog):
                                   color=0xff0000)
             embed.set_footer(text=f"Report ID: {ctx.id}")
             return await ctx.response.send_message(embed=embed, ephemeral=True)
-        
 
     @scratch_ff.error
     async def ff_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

@@ -76,11 +76,10 @@ class Web(commands.Cog):
     async def on_ready(self):
         print("WebCog on ready")
 
-
     #########################
 
-
     # url
+
     @app_commands.command(name="url", description="URLを短縮します")
     @app_commands.checks.cooldown(2, 15)
     @app_commands.describe(url="URLを貼り付け")
@@ -98,29 +97,27 @@ class Web(commands.Cog):
 
         except Exception:
             embed = discord.Embed(title=":x: エラー",
-                                description="エラーが発生しました。",
-                                color=0xff0000)
+                                  description="エラーが発生しました。",
+                                  color=0xff0000)
             await ctx.followup.send(embed=embed, ephemeral=True)
 
         else:
             embed = discord.Embed(title="短縮URL",
-                                description="URLを短縮しました。\n`{0}`".format(short.strip('"')),
-                                color=discord.Colour.green())
+                                  description="URLを短縮しました。\n`{0}`".format(short.strip('"')),
+                                  color=discord.Colour.green())
             embed.set_footer(text="Powered by UR7 Shortener")
             await ctx.followup.send(embed=embed, ephemeral=True)
 
-
     # 5000choen
+
     @app_commands.command(name="gosen", description="「5000兆円欲しい！」ジェネレーター")
     @app_commands.checks.cooldown(2, 15)
     async def gosen_choen(self, ctx: discord.Interaction):
         await ctx.response.send_modal(GosenChoen())
 
-
     ##################################################
 
     ''' クールダウン '''
-
 
     @url.error
     async def url_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
@@ -133,7 +130,6 @@ class Web(commands.Cog):
                                   color=0xff0000)
             embed.set_footer(text=f"Report ID: {ctx.id}")
             return await ctx.response.send_message(embed=embed, ephemeral=True)
-        
 
     @gosen_choen.error
     async def gosen_choen_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

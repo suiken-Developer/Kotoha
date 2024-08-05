@@ -29,17 +29,15 @@ class Shikanoko(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-
     # Cog読み込み時
     @commands.Cog.listener()
     async def on_ready(self):
         print("ShikanokoCog on ready")
 
-
     #########################
 
-
     # shikanoko
+
     @app_commands.command(name="shikanoko", description="「しかのこのこのここしたんたん」を引き当てよう")
     @app_commands.checks.cooldown(1, 1)
     @app_commands.describe(pcs="回数（1~20）")
@@ -47,8 +45,8 @@ class Shikanoko(commands.Cog):
         # エラー: 回数が範囲外
         if not 0 < pcs < 21:
             embed = discord.Embed(title=":x: エラー",
-                                description="回数は1~20で指定してください",
-                                color=0xff0000)
+                                  description="回数は1~20で指定してください",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
@@ -146,8 +144,8 @@ class Shikanoko(commands.Cog):
             with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
                 json.dump(data, f)
 
-
     # shikaoko-ranking
+
     @app_commands.command(name="shikanoko-ranking", description="ランキング情報")
     @app_commands.checks.cooldown(2, 60)
     async def shikanoko_ranking(self, ctx: discord.Interaction):
@@ -205,11 +203,9 @@ class Shikanoko(commands.Cog):
         embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
         await ctx.followup.send(embed=embed)
 
-
     #########################
 
     ''' クールダウン '''
-
 
     @shikanoko.error
     async def shikanoko_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
@@ -222,7 +218,6 @@ class Shikanoko(commands.Cog):
                                   color=0xff0000)
             embed.set_footer(text=f"Report ID: {ctx.id}")
             return await ctx.response.send_message(embed=embed, ephemeral=True)
-
 
     @shikanoko_ranking.error
     async def ranking_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):

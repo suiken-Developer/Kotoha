@@ -17,11 +17,10 @@ class Guild(commands.Cog):
     async def on_ready(self):
         print("GuildCog on ready")
 
-
     #########################
 
-
     # GuildIcon
+
     @app_commands.command(name="getguildicon", description="このサーバーのアイコンを取得します")
     @app_commands.checks.cooldown(2, 15)
     async def getguildicon(self, ctx: discord.Interaction):
@@ -32,22 +31,20 @@ class Guild(commands.Cog):
 
         except Exception:
             embed = discord.Embed(title=":x: エラー",
-                                description="サーバーアイコンを取得できません",
-                                color=0xff0000)
+                                  description="サーバーアイコンを取得できません",
+                                  color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
             embed = discord.Embed(title="サーバーアイコン",
-                                description=":white_check_mark:画像を取得しました。")
+                                  description=":white_check_mark:画像を取得しました。")
             embed.set_thumbnail(url=guildicon)
             await ctx.response.send_message(embed=embed, ephemeral=True)
-
 
     #########################
 
     ''' クールダウン '''
 
-    
     @getguildicon.error
     async def on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.checks.CommandOnCooldown):
