@@ -114,7 +114,7 @@ async def sync(ctx):
 # devsync
 @bot.command(name="devsync")
 @commands.is_owner()
-async def sync(ctx):
+async def devsync(ctx):
     try:
         synced = await bot.tree.sync(guild=discord.Object(DEV_GUILD))
 
@@ -244,7 +244,7 @@ async def on_command_error(ctx: commands.Context, error):
         print(error)
     
     if isinstance(error, commands.errors.CheckFailure):  # スラッシュコマンドでのみ動作するように制約
-        await ctx.send(f':x: 権限がありません', ephemeral = True)  # 権限を持たずにコマンドを実行した際に警告する
+        await ctx.send(":x: 権限がありません", ephemeral=True)  # 権限を持たずにコマンドを実行した際に警告する
 
 
 asyncio.run(main())
