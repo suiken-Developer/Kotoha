@@ -41,6 +41,7 @@ bot = commands.Bot(command_prefix=PREFIX, intents=discord.Intents.all())
 @bot.event
 async def on_ready():
     print("[Akane] ログインしました")
+    bot_guilds = len(bot.guilds)
     bot_members = []
 
     for guild in bot.guilds:
@@ -55,7 +56,7 @@ async def on_ready():
     with open("data/status.json", "r", encoding="UTF-8") as f:
         s_data = json.load(f)
 
-    s_data["bot_guilds"] = len(bot.guilds)
+    s_data["bot_guilds"] = bot_guilds
     s_data["bot_members"] = len(bot_members)
     # s_data["bot_realmembers"] = list(set(bot_members))
 
