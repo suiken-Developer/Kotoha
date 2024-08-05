@@ -42,7 +42,7 @@ OWNER = int(os.getenv("OWNER"))
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
 ERROR_LOG = int(os.getenv("ERROR_LOG"))
 PREFIX = "k."  # Default Prefix
-VERSION = "4.17.1"
+VERSION = "4.17.3"
 
 # Gemini
 AIMODEL_NAME = "gemini-1.5-pro-latest"
@@ -543,7 +543,7 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.user.id) in data['ranking'].values():
+                if str(ctx.user.id) in data['ranking'].keys():
                     data['ranking'][str(ctx.user.id)] += n
 
                 else:
@@ -585,7 +585,7 @@ async def shikanoko(ctx: discord.Interaction, pcs: int = 1):
                 data['latest'] = f"@{ctx.user.name}"
 
                 # 当選データベースに登録
-                if str(ctx.author.id) in data['ranking'].values():
+                if str(ctx.author.id) in data['ranking'].keys():
                     data['ranking'][str(ctx.user.id)] += 1
 
                 else:
@@ -843,7 +843,7 @@ async def url(ctx: discord.Interaction, url: str):
     await ctx.response.defer()
 
     request = requests.post(
-        "https://ur7.cc/yourls-api.php?username={UR7_USERNAME}&password={UR7_PASSWORD}&action=shorturl&format=json&url={url}"
+        f"https://ur7.cc/yourls-api.php?username={UR7_USERNAME}&password={UR7_PASSWORD}&action=shorturl&format=json&url={url}"
         )
 
     r = request.json()
@@ -1145,7 +1145,7 @@ class GosenChoen(discord.ui.Modal, title='「5000兆円欲しい！」ジェネ�
     )
 
     async def on_submit(self, ctx: discord.Interaction):
-        url = "https://gsapi.cbrx.io/image?top={self.line1.value}&bottom={self.line2.value}&type=png"
+        url = f"https://gsapi.cbrx.io/image?top={self.line1.value}&bottom={self.line2.value}&type=png"
 
         try:
             embed = discord.Embed()
