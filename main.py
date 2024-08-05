@@ -242,7 +242,7 @@ async def on_command_error(ctx: commands.Context, error):
     # Botが起こしたエラーの場合
     if ctx.author.bot:
         print(error)
-    
+
     if isinstance(error, commands.errors.CheckFailure):  # スラッシュコマンドでのみ動作するように制約
         await ctx.send(":x: 権限がありません", ephemeral=True)  # 権限を持たずにコマンドを実行した際に警告する
 
