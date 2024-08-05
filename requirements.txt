@@ -9,4 +9,5 @@ python-dotenv==1.0.1
 qrcode==7.4.2
 Requests==2.32.3
 scratchattach==1.7.3
+tzdata==2024.1
 yt_dlp==2023.7.6
