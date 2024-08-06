@@ -1,16 +1,16 @@
 # 組み込みライブラリ
 import os
-import json
 import datetime
 from zoneinfo import ZoneInfo  # JST設定用
 
 # 外部ライブラリ
 import discord
 from discord import app_commands
-from discord.ext import commands  # Bot Commands Frameworkをインポート
+from discord.ext import commands  # Bot Commands Framework
 import psutil  # psutil
 from dotenv import load_dotenv  # python-dotenv
 import distro  # distro (Linuxのみ)
+import simplejson as json  # simplejson
 
 # 自作モジュール
 from modules.pagination import Pagination

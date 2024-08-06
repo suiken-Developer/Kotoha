@@ -1,14 +1,16 @@
+# 組み込みライブラリ
 import os
-import json
 import re
 import datetime
 
+# 外部ライブラリ
 import discord
 from discord.ui import Select, View
-from discord.ext import commands  # Bot Commands Frameworkをインポート
+from discord.ext import commands  # Bot Commands Framework
 import aiohttp  # aiohttp
 from dotenv import load_dotenv  # python-dotenv
 import google.generativeai as genai  # google-generativeai
+import simplejson as json  # simplejson
 
 
 load_dotenv()  # .env読み込み

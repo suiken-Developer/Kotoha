@@ -1,6 +1,7 @@
+# 外部ライブラリ
 import discord
 from discord import app_commands
-from discord.ext import commands  # Bot Commands Frameworkをインポート
+from discord.ext import commands  # Bot Commands Framework
 import scratchattach as scratch3  # scratchattach
 
 

@@ -4,13 +4,13 @@ import datetime
 import os
 from itertools import cycle
 import random
-import json
 
 # 外部ライブラリ
 import discord
 from discord.ext import commands  # Bot Commands Framework
 from discord.ext import tasks
 from dotenv import load_dotenv  # python-dotenv
+import simplejson as json  # simplejson
 
 
 load_dotenv()  # .env読み込み

@@ -1,9 +1,11 @@
+# 組み込みライブラリ
 import re
 import datetime
 
+# 外部ライブラリ
 import discord
 from discord import app_commands
-from discord.ext import commands  # Bot Commands Frameworkをインポート
+from discord.ext import commands  # Bot Commands Framework
 
 
 ##################################################
