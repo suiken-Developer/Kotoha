@@ -10,6 +10,7 @@ from discord import app_commands
 from discord.ext import commands  # Bot Commands Frameworkをインポート
 import psutil  # psutil
 from dotenv import load_dotenv  # python-dotenv
+import distro  # distro (Linuxのみ)
 
 # 自作モジュール
 from modules.pagination import Pagination
@@ -114,6 +115,7 @@ class System(commands.Cog):
         embed.add_field(name="ストレージ", value=f"使用率: {psutil.disk_usage('/').percent}% "
                         f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
                         f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
+        embed.add_field(name="OS", value=f"{distro.name()} {distro.version()}")
         embed.add_field(name="サーバー起動時刻", value=f"{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')}")
         embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
         await ctx.followup.send(embed=embed)
