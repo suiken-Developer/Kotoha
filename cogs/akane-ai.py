@@ -83,8 +83,14 @@ with open("data/prompts/jinrou.txt", encoding="UTF-8") as f:
 with open("data/prompts/quiz.txt", encoding="UTF-8") as f:
     QUIZ_PROMPT = f.read()
 
-SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, JINROU_PROMPT]
-CHARAS = ["琴葉茜", "琴葉葵", "人狼（β版）"]
+with open("data/prompts/zundamon.txt", encoding="UTF-8") as f:
+    ZUNDAMON_PROMPT = f.read()
+
+with open("data/prompts/anagosan.txt", encoding="UTF-8") as f:
+    ANAGOSAN_PROMPT = f.read()
+
+SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, JINROU_PROMPT, ZUNDAMON_PROMPT, ANAGOSAN_PROMPT]
+CHARAS = ["琴葉茜", "琴葉葵", "人狼（β版）", "ずんだもん", "アナゴさん"]
 AI_COMMANDS = [f"{PREFIX}{i}" for i in AI_COMMANDS]
 
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -222,6 +228,8 @@ class SelectView(View):
             discord.SelectOption(label="琴葉茜", value="0", description="合成音声キャラクター"),
             discord.SelectOption(label="琴葉葵", value="1", description="合成音声キャラクター"),
             discord.SelectOption(label="人狼（β版）", value="2", description="人狼ゲーム"),
+            discord.SelectOption(label="ずんだもん", value="3", description="ずんずんPJ"),
+            discord.SelectOption(label="アナゴさん", value="4", description="サザエさん"),
         ],
     )
     async def selectMenu(self, ctx: discord.Interaction, select: Select):
