@@ -2,6 +2,7 @@
 import os
 import re
 import datetime
+import io
 
 # 外部ライブラリ
 import discord
@@ -31,7 +32,7 @@ AI_COMMANDS = ["aihelp", "chara", "stats", "clear", "count"]  # 無視するコ�
 ''' 初期処理 '''
 
 # Gemini
-AIMODEL_NAME = "gemini-1.5-pro-latest"
+AIMODEL_NAME = "gemini-1.5-flash"
 
 text_generation_config = {
     "temperature": 0.9,
@@ -89,8 +90,14 @@ with open("data/prompts/zundamon.txt", encoding="UTF-8") as f:
 with open("data/prompts/anagosan.txt", encoding="UTF-8") as f:
     ANAGOSAN_PROMPT = f.read()
 
-SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, JINROU_PROMPT, ZUNDAMON_PROMPT, ANAGOSAN_PROMPT]
-CHARAS = ["琴葉茜", "琴葉葵", "人狼（β版）", "ずんだもん", "アナゴさん"]
+with open("data/prompts/hiroyuki.txt", encoding="UTF-8") as f:
+    HIROYUKI_PROMPT = f.read()
+
+with open("data/prompts/koishi.txt", encoding="UTF-8") as f:
+    KOISHI_PROMPT = f.read()
+
+SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, JINROU_PROMPT, ZUNDAMON_PROMPT, ANAGOSAN_PROMPT, HIROYUKI_PROMPT, KOISHI_PROMPT]
+CHARAS = ["琴葉茜", "琴葉葵", "人狼（β版）", "ずんだもん", "アナゴさん", "ひろゆき", "古明地こいし"]
 AI_COMMANDS = [f"{PREFIX}{i}" for i in AI_COMMANDS]
 
 genai.configure(api_key=GOOGLE_API_KEY)
@@ -168,14 +175,21 @@ def gemini(text, flag, attachment, chara):
     '''
     # テキストモード
     if flag == 0:
+        # キャラクターなし
+        if chara == 100:
+            prompt = "あなたは優秀なチャットボットです。Userの発言に応答してください。チャットなので、返答はなるべく100字以内でお願いします。"
+
         # キャラ数が合っていないエラー対策
-        if chara > len(SYSTEM_PROMPTS) - 1:
-            chara = 0
+        elif chara > len(SYSTEM_PROMPTS) - 1:
+            prompt = SYSTEM_PROMPTS[0]
+
+        else:
+            prompt = SYSTEM_PROMPTS[int(chara)]
 
         text_model = genai.GenerativeModel(model_name=AIMODEL_NAME,
                                            safety_settings=safety_settings,
                                            generation_config=text_generation_config,
-                                           system_instruction=SYSTEM_PROMPTS[int(chara)])
+                                           system_instruction=prompt)
         chat = text_model.start_chat(history=attachment)
 
         # Geminiにメッセージを投げて返答を待つ。エラーはエラーとして返す。
@@ -183,10 +197,28 @@ def gemini(text, flag, attachment, chara):
             response = chat.send_message(text)
 
         except Exception as e:
-            return [False, e]
+            return [False, e], None
 
         else:
-            return [True, response.text]
+            # 返答の調整
+            # 改行の削除
+            formated_response = response.text
+            formated_response = re.sub(r'(\n){3,}', '\n', formated_response)
+            formated_response = formated_response.splitlines()
+
+            formated_response = [item for item in formated_response if item.strip()]
+
+            if len(formated_response) <= 15:
+                iofile = None
+                final_response = "\n".join(formated_response)
+
+            else:
+                final_response = '\n'.join(formated_response[:15])
+                remaining_response = "※16行目以降の内容\n\n" + '\n'.join(formated_response[15:])
+
+                iofile = io.StringIO(remaining_response)
+
+            return [True, final_response], iofile
 
     # 画像モード
     else:
@@ -206,10 +238,28 @@ def gemini(text, flag, attachment, chara):
             response = image_model.generate_content(prompt_parts)
 
         except Exception as e:
-            return [False, e]
+            return [False, e], None
 
         else:
-            return [True, response.text]
+            # 返答の調整
+            # 改行の削除
+            formated_response = response.text
+            formated_response = re.sub(r'(\n){3,}', '\n', formated_response)
+            formated_response = formated_response.splitlines()
+
+            formated_response = [item for item in formated_response if item.strip()]
+
+            if len(formated_response) <= 15:
+                iofile = None
+                final_response = "\n".join(formated_response)
+
+            else:
+                final_response = '\n'.join(formated_response[:15])
+                remaining_response = "※16行目以降の内容\n\n" + '\n'.join(formated_response[15:])
+
+                iofile = io.StringIO(remaining_response)
+
+            return [True, final_response], iofile
 
 
 # キャラクター選択ドロップダウン
@@ -225,11 +275,14 @@ class SelectView(View):
         placeholder="選択してください",
         disabled=False,
         options=[
+            discord.SelectOption(label="キャラクターなし", value="100", description="通常のチャットボット"),
             discord.SelectOption(label="琴葉茜", value="0", description="合成音声キャラクター"),
             discord.SelectOption(label="琴葉葵", value="1", description="合成音声キャラクター"),
             discord.SelectOption(label="人狼（β版）", value="2", description="人狼ゲーム"),
             discord.SelectOption(label="ずんだもん", value="3", description="ずんずんPJ"),
             discord.SelectOption(label="アナゴさん", value="4", description="サザエさん"),
+            discord.SelectOption(label="ひろゆき", value="5", description="2ちゃんねるの創設者"),
+            discord.SelectOption(label="古明地こいし", value="6", description="東方Project"),
         ],
     )
     async def selectMenu(self, ctx: discord.Interaction, select: Select):
@@ -241,8 +294,15 @@ class SelectView(View):
         with open(f"data/ai/{ctx.user.id}.json", 'w', encoding='UTF-8') as f:
             json.dump([ai_data[0], int(select.values[0])], f)
 
+        # キャラクターなしの場合
+        if int(select.values[0]) == 100:
+            selected_chara = "キャラクターなし"
+
+        else:
+            selected_chara = CHARAS[int(select.values[0])]
+
         await ctx.response.edit_message(view=self)
-        await ctx.followup.send(f"✅ {ctx.user.mention} のキャラクターを**{CHARAS[int(select.values[0])]}**に変更しました")
+        await ctx.followup.send(f"✅ {ctx.user.mention} のキャラクターを**{selected_chara}**に変更しました")
 
 
 ##################################################
@@ -304,8 +364,11 @@ class Akane_ai(commands.Cog):
 
             view = SelectView()
 
-            # キャラクター削除対応
-            if ai_data[1] > len(CHARAS) - 1:
+            # キャラクターなしおよび削除対応
+            if ai_data[1] == 100:
+                chara_present = "キャラクターなし"
+
+            elif ai_data[1] > len(CHARAS) - 1:
                 chara_present = CHARAS[0]
 
             else:
@@ -374,6 +437,7 @@ class Akane_ai(commands.Cog):
                                         await message.reply(":x: 画像が読み取れません。時間を空けてから試してください。",
                                                             mention_author=False)
                                         response = ""
+                                        iofile = None
 
                                     else:
                                         image_data = await resp.read()
@@ -398,13 +462,14 @@ class Akane_ai(commands.Cog):
                                             embed = help_embed()
                                             await message.reply(embed=embed)
 
-                                        response = gemini(cleaned_text, 1, image_data, chara)
+                                        response, iofile = gemini(cleaned_text, 1, image_data, chara)
 
                         else:
                             await message.reply(":x: 画像が読み取れません。ファイルを変更してください。\n"
                                                 "対応しているファイル形式: ```.png .jpg .jpeg .gif .webp```",
                                                 mention_author=False)
                             response = ""
+                            iofile = None
 
                 else:
                     # 文章モード (過去データ読み取り)
@@ -425,7 +490,7 @@ class Akane_ai(commands.Cog):
                             history = list(ai_data[2:])
 
                         # print(history)
-                        response = gemini(message.content, 0, history, ai_data[1])
+                        response, iofile = gemini(message.content, 0, history, ai_data[1])
 
                     # 会話が初めてならjson作成＆インストラクション
                     else:
@@ -437,7 +502,7 @@ class Akane_ai(commands.Cog):
 
                         embed = help_embed(0)
                         await message.reply(embed=embed)
-                        response = gemini(message.content, 0, history, ai_data[1])
+                        response, iofile = gemini(message.content, 0, history, ai_data[1])
 
                 # 正常な返答があれば履歴保存
                 if len(response) > 0:
@@ -467,7 +532,15 @@ class Akane_ai(commands.Cog):
                             else:
                                 response = response[1]
 
-                            await message.reply(response, mention_author=False)
+                            # 31行目からのファイルを添付するか
+                            try:
+                                if iofile is None:
+                                    await message.reply(response, mention_author=False)
+
+                                else:
+                                    await message.reply(response + "\n\n※16行以上の返答は省略されました", file=discord.File(fp=iofile, filename="response.txt"), mention_author=False)
+                            except Exception as e:
+                                print(e)
 
                         # 画像モード
                         elif (len(response[1]) > 0) and (flag == 1):
@@ -482,13 +555,18 @@ class Akane_ai(commands.Cog):
                             else:
                                 response = response[1]
 
-                            await message.reply(response, mention_author=False)
+                            # 31行目からのファイルを添付するか
+                            if iofile is None:
+                                await message.reply(response, mention_author=False)
+
+                            else:
+                                await message.reply(response + "\n\n※16行以上の返答は省略されました", file=iofile, mention_author=False)
 
                     else:
                         # エラーログ出力
                         if str(response[1]).startswith("429"):
                             embed = discord.Embed(title="混雑中",
-                                                  description="Akane AIが混雑しています。**5秒程度**お待ちください。",
+                                                  description="Akane AIが混雑しています。しばらくお待ちください。",
                                                   color=0xff0000)
                             embed.set_footer(text=f"Report ID: {message.id}")
                             await message.reply(embed=embed, mention_author=False)
@@ -504,7 +582,7 @@ class Akane_ai(commands.Cog):
                         # 例外エラー
                         else:
                             embed = discord.Embed(title="エラー",
-                                                  description="不明なエラーが発生しました。しばらく時間を空けるか、メッセージ内容を変えてください。",
+                                                  description="不明なエラーが発生しました。しばらく時間を空けるか、不適切な内容を削除してください。",
                                                   color=0xff0000)
                             embed.set_footer(text=f"Report ID: {message.id}")
                             await message.reply(embed=embed, mention_author=False)

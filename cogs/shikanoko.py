@@ -2,6 +2,7 @@
 import os
 import datetime
 from zoneinfo import ZoneInfo  # JST設定用
+import sqlite3
 
 # 外部ライブラリ
 import discord
@@ -31,6 +32,46 @@ ERROR_LOG = int(os.getenv("ERROR_LOG"))
 class Shikanoko(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn = sqlite3.connect('data/shikanoko.db')
+        self.c = self.conn.cursor()
+
+        # money.dbの共有接続を取得
+        self.money_conn = bot.money_db_connection
+        self.money_c = self.money_conn.cursor()
+
+        # ユーザー情報を保存するテーブルを作成
+        self.c.execute('''
+        CREATE TABLE IF NOT EXISTS user_lucky_draw (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            hits INTEGER DEFAULT 0,
+            last_hit_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+
+        # 最新のあたりユーザーを保存するテーブルを作成
+        self.c.execute('''
+        CREATE TABLE IF NOT EXISTS latest_winner (
+            id INTEGER PRIMARY KEY,
+            user_id INTEGER,
+            username TEXT
+        )
+        ''')
+
+        # 総あたり回数を保存するテーブルを作成
+        self.c.execute('''
+        CREATE TABLE IF NOT EXISTS total_hits (
+            id INTEGER PRIMARY KEY,
+            total_hits INTEGER DEFAULT 0,
+            total_draws INTEGER DEFAULT 0
+        )
+        ''')
+
+        # 初期化：総あたり回数と総実行回数が記録されていない場合は初期値を設定
+        self.c.execute('SELECT total_hits, total_draws FROM total_hits WHERE id = 1')
+        if self.c.fetchone() is None:
+            self.c.execute('INSERT INTO total_hits (id, total_hits, total_draws) VALUES (1, 0, 0)')
+            self.conn.commit()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -48,66 +89,14 @@ class Shikanoko(commands.Cog):
         # エラー: 回数が範囲外
         if not 0 < pcs < 21:
             embed = discord.Embed(title=":x: エラー",
-                                  description="回数は1~20で指定してください",
-                                  color=0xff0000)
+                                description="回数は1~20で指定してください",
+                                color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
-            await ctx.response.defer()
+            results = []
 
-            with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
-                data = json.load(f)
-
-            data['total'] += pcs
-
-            if pcs > 1:
-                results = []
-
-                for i in range(pcs):
-                    c = "し"
-                    words = [c]
-
-                    while True:
-                        c = shika(c)
-
-                        if c == "END":
-                            word = "".join(words)
-                            results.append(word)
-                            break
-
-                        else:
-                            words.append(c)
-
-                if "しかのこのこのここしたんたん" in results:
-                    n = results.count("しかのこのこのここしたんたん")
-                    status = "あたり！"
-                    data['win'] += n
-                    data['latest'] = f"@{ctx.user.name}"
-
-                    # 当選データベースに登録
-                    if str(ctx.user.id) in data['ranking'].keys():
-                        data['ranking'][str(ctx.user.id)] += n
-
-                    else:
-                        data['ranking'][str(ctx.user.id)] = n
-
-                else:
-                    status = "はずれ！"
-
-                # 結果を変数にまとめる
-                result = ""
-
-                for i in results:
-                    result += f"・{i}\n"
-
-                probability = round((data['win'] / data['total']) * 100, 2)
-                embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
-                                      description=f"{result}\n**{status}**",
-                                      color=discord.Colour.green())
-                embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
-                await ctx.followup.send(embed=embed)
-
-            else:
+            for i in range(pcs):
                 c = "し"
                 words = [c]
 
@@ -116,95 +105,157 @@ class Shikanoko(commands.Cog):
 
                     if c == "END":
                         word = "".join(words)
+                        results.append(word)
                         break
 
                     else:
                         words.append(c)
 
-                if word == "しかのこのこのここしたんたん":
-                    status = "あたり！"
-                    data['win'] += 1
-                    data['latest'] = f"@{ctx.user.name}"
+            if "しかのこのこのここしたんたん" in results:
+                n = results.count("しかのこのこのここしたんたん")
+                status = "**あたり！**\n※ウォレットを開設していれば報酬が受け取れます"
 
-                    # 当選データベースに登録
-                    if str(ctx.author.id) in data['ranking'].keys():
-                        data['ranking'][str(ctx.user.id)] += 1
+                # 最新のあたりユーザーを更新
+                self.c.execute('DELETE FROM latest_winner')
+                self.c.execute('INSERT INTO latest_winner (user_id, username) VALUES (?, ?)',
+                            (ctx.user.id, ctx.user.name))
 
-                    else:
-                        data['ranking'][str(ctx.user.id)] = 1
+                # ユーザーのあたり回数を更新
+                self.c.execute('SELECT hits FROM user_lucky_draw WHERE user_id = ?', (ctx.user.id,))
+                row = self.c.fetchone()
 
+                if row is None:
+                    # 新規ユーザーの場合
+                    self.c.execute('INSERT INTO user_lucky_draw (user_id, username, hits) VALUES (?, ?, ?)',
+                                (ctx.user.id, ctx.user.name, n))
                 else:
-                    status = "はずれ！"
+                    # 既存ユーザーの場合、あたり回数とユーザー名を更新
+                    self.c.execute(f'''
+                    UPDATE user_lucky_draw
+                    SET hits = hits + {n}, last_hit_time = CURRENT_TIMESTAMP, username = ?
+                    WHERE user_id = ?
+                    ''', (ctx.user.name, ctx.user.id))
 
-                probability = round((data['win'] / data['total']) * 100, 2)
-                embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
-                                      description=f"{word}\n\n**{status}**",
-                                      color=discord.Colour.green())
-                embed.set_footer(text=f"統計: {data['win']}/{data['total']}回当たり ({probability}%)  直近の当選者: {data['latest']}")
-                await ctx.followup.send(embed=embed)
+                # 総あたり回数を更新
+                self.c.execute(f'UPDATE total_hits SET total_hits = total_hits + {n} WHERE id = 1')
 
-            # データの保存
-            with open("data/shikanoko.json", "w", encoding="UTF-8") as f:
-                json.dump(data, f)
+                # DBをチェックして報酬を与える
+                self.money_c.execute('SELECT balance FROM user_data WHERE user_id = ?', (ctx.user.id,))
+                result = self.money_c.fetchone()
 
-    # shikaoko-ranking
+                if result:
+                    bonus = 3000 * n
+
+                    self.money_c.execute('''
+                        UPDATE user_data
+                        SET balance = ?
+                        WHERE user_id = ?
+                    ''', ((result[0] + bonus), ctx.user.id))
+
+                    self.money_conn.commit()
+
+                    status = f"**あたり！**\n{bonus} ZNY獲得"
+
+            else:
+                status = "**はずれ！**"
+
+            # 総実行回数を更新
+            self.c.execute(f'UPDATE total_hits SET total_draws = total_draws + {pcs} WHERE id = 1')
+            self.conn.commit()
+
+            # 総あたり回数と総実行回数を表示
+            self.c.execute('SELECT total_hits, total_draws FROM total_hits WHERE id = 1')
+            total_hits, total_draws = self.c.fetchone()
+
+            # あたり者も表示
+            self.c.execute('SELECT username FROM latest_winner')
+            latest_winner = self.c.fetchone()
+
+            if latest_winner:
+                latest_winner = latest_winner[0]
+
+            else:
+                latest_winner = "なし"
+
+            # 結果を変数にまとめる
+            result = ""
+
+            for i in results:
+                result += f"・{i}\n"
+
+            probability = round((total_hits / total_draws) * 100, 2)
+            embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
+                                    description=f"{result}\n{status}",
+                                    color=discord.Colour.green())
+            embed.set_footer(text=f"統計: {total_hits}/{total_draws}回当たり ({probability}%)  直近の当選者: @{latest_winner}")
+            await ctx.response.send_message(embed=embed)
+
+    # shikanoko-ranking
 
     @app_commands.command(name="shikanoko-ranking", description="ランキング情報")
     @app_commands.checks.cooldown(2, 60)
     async def shikanoko_ranking(self, ctx: discord.Interaction):
-        await ctx.response.defer()
-
         # データ読み込み
-        with open("data/shikanoko.json", "r", encoding="UTF-8") as f:
-            data = json.load(f)
 
-        ranking = sorted(data["ranking"].items(), key=lambda x: x[1], reverse=True)
-        # longest_ranking = sorted(data["longest_ranking"].items(), key=lambda x: x[1], reverse=True)
+        # トップ10のユーザーを取得
+        self.c.execute('''
+        SELECT user_id, hits FROM user_lucky_draw
+        ORDER BY hits DESC
+        LIMIT 10
+        ''')
+        top10_rows = self.c.fetchall()
+
+        top10_users = []
+        rank = 1
+        previous_hits = None
+        current_rank = 1
+
+        # トップ10のユーザーの順位を決定
+        for id, hits in top10_rows:
+            # データベースから最新のユーザー名を取得
+            self.c.execute('SELECT username FROM user_lucky_draw WHERE user_id = ?', (id,))
+            username = self.c.fetchone()[0]
+
+            # 順位の重複処理
+            if previous_hits is None or hits < previous_hits:
+                current_rank = rank
+
+            rank += 1
+            previous_hits = hits
+
+            top10_users.append(f"{current_rank}位: `@{username}`  **{hits}**回")
+
+        # 自分の順位を取得
+        self.c.execute('''
+        SELECT COUNT(*) + 1 FROM user_lucky_draw
+        WHERE hits > (SELECT hits FROM user_lucky_draw WHERE user_id = ?)
+        ''', (ctx.user.id,))
+        user_rank = self.c.fetchone()[0]
+
+        # 自分のあたり回数を取得
+        self.c.execute('SELECT hits FROM user_lucky_draw WHERE user_id = ?', (ctx.user.id,))
+        user_hits = self.c.fetchone()
+
+        # 自分の順位とあたり回数を表示
+        if user_hits:
+            user_rank_data = f"{user_rank}位: `@{ctx.user.name}`  **{user_hits[0]}**回"
+
+        else:
+            user_rank_data = "集計対象外"
 
         # embedデータの作成
         desc = "**[出現回数トップ10]**\n"
 
-        # トップ10の作成
-        current_rank = 1
-        previous_value = None
-        count = 0
-        your_rank = "集計対象外"
+        for i in top10_users:
+            desc += f"{i}\n"
 
-        for i, (key, value) in enumerate(ranking):
-            # 値が異なる場合は順位+1
-            if value != previous_value:
-                if count >= 10:
-                    break
-
-                current_rank = i + 1
-
-            # 自分の順位回収
-            if key == str(ctx.user.id):
-                your_rank = f"{current_rank}位 @{ctx.user.name}  **{value}回**"
-
-            if count < 10:
-                # ユーザー名に変換
-                try:
-                    user = await self.bot.fetch_user(int(key))
-
-                except Exception:
-                    name = "不明なユーザー"
-
-                else:
-                    name = user.name
-
-                desc += f"{current_rank}位: @{name}  **{value}回**\n"
-                count += 1
-
-            previous_value = value
-
-        desc += f"\n**[あなたの順位]**\n{your_rank}"
+        desc += f"\n**[あなたの順位]**\n{user_rank_data}"
 
         embed = discord.Embed(title="🦌「しかのこ」ランキング",
-                              description=desc,
-                              color=discord.Colour.green())
+                            description=desc,
+                            color=discord.Colour.green())
         embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
-        await ctx.followup.send(embed=embed)
+        await ctx.response.send_message(embed=embed)
 
     #########################
 
@@ -237,3 +288,7 @@ class Shikanoko(commands.Cog):
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Shikanoko(bot))
+
+# Bot終了時にdb閉じておく
+async def teardown(bot):
+    bot.get_cog('Shikanoko').conn.close()

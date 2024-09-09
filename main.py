@@ -4,6 +4,7 @@ import datetime
 import os
 from itertools import cycle
 import random
+import sqlite3
 
 # 外部ライブラリ
 import discord
@@ -11,7 +12,7 @@ from discord.ext import commands  # Bot Commands Framework
 from discord.ext import tasks
 from dotenv import load_dotenv  # python-dotenv
 import simplejson as json  # simplejson
-
+from discord import app_commands
 
 load_dotenv()  # .env読み込み
 
@@ -34,7 +35,11 @@ with open("data/status.json", "r", encoding="UTF-8") as f:
 
 STATUS_LIST = cycle(["❓/help", f"{data['bot_guilds']} Servers", f"{data['bot_members']} Users", f"Version {VERSION}"])
 
-bot = commands.Bot(command_prefix=PREFIX, intents=discord.Intents.all())
+bot = commands.Bot(command_prefix=PREFIX, intents=discord.Intents.all(), help_command=None)
+
+# DB操作
+money_db_connection = sqlite3.connect("data/money.db") # money.dbの接続を作成
+bot.money_db_connection = money_db_connection
 
 
 # 起動通知
@@ -235,7 +240,8 @@ INITIAL_EXTENSIONS = [
     'cogs.useful',
     'cogs.web',
     'cogs.akane-talks',
-    'cogs.akane-ai'
+    'cogs.akane-ai',
+    'cogs.money'
 ]
 
 
@@ -263,5 +269,6 @@ async def on_command_error(ctx: commands.Context, error):
     if isinstance(error, commands.errors.CheckFailure):  # スラッシュコマンドでのみ動作するように制約
         await ctx.send(":x: 権限がありません", ephemeral=True)  # 権限を持たずにコマンドを実行した際に警告する
 
-
 asyncio.run(main())
+
+print("CRASH!")
