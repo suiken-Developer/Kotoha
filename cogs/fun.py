@@ -172,7 +172,7 @@ class Fun(commands.Cog):
         view.add_item(button1)
         view.add_item(button2)
         view.add_item(button3)
-        await ctx.response.send_message("最初はぐー、じゃんけん", view=view, ephemeral=ephemeral)
+        await ctx.response.send_message("最初はぐー、じゃんけん", view=view, ephemeral=False)
 
     #########################
 

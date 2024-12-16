@@ -8,12 +8,8 @@ import discord
 from discord import app_commands
 from discord.ext import commands  # Bot Commands Framework
 from dotenv import load_dotenv  # python-dotenv
-import simplejson as json  # simplejson
 import requests
 from bs4 import BeautifulSoup
-
-# 自作モジュール
-from modules.pagination import Pagination
 
 
 load_dotenv()  # .env読み込み
@@ -28,13 +24,14 @@ VERSION = os.getenv("VERSION")
 
 ''' 関数群 '''
 
+
 def track_package(tracking_code):
     """
     日本郵便の追跡サービスから現在のステータスと履歴情報を取得する関数。
-    
+
     Args:
         tracking_code (str): 追跡番号。
-    
+
     Returns:
         dict: 現在のステータスと履歴情報を含む辞書。
     """
@@ -74,19 +71,19 @@ def track_package(tracking_code):
                 # 日付情報（<dd>内の<span class="date">から取得）
                 date_span = dl.find("span", class_="date")
                 date = date_span.text.strip() if date_span else "日時不明"
-                
+
                 # 詳細とステータス（<dt>から取得）
                 details_dt = dl.find("dt")
                 details_text = details_dt.text.strip() if details_dt else "詳細不明"
-                
+
                 # 改行や余計なスペースを削除
                 details_text = details_text.replace("\u3000", "").strip()  # 全角スペースを取り除く
                 lines = details_text.split("\n")  # 改行で分割
-                
+
                 # 1行目はdetails、3行目はstatus
                 details = lines[0].strip() if len(lines) > 0 else "詳細不明"
                 status = lines[2].strip() if len(lines) > 2 else "ステータス不明"
-                
+
                 # 1つのエントリとして保存
                 entries.append({"date": date, "details": details, "status": status})
 
@@ -100,6 +97,7 @@ def track_package(tracking_code):
         return {"error": "不明なエラーが発生しました。"}
 
 ##################################################
+
 
 ''' コマンド '''
 
@@ -135,19 +133,19 @@ class JpPost(commands.Cog):
 
         #####
 
-        number.replace("-", "").replace(" ", "").replace("　", "") # ハイフン除去
+        number.replace("-", "").replace(" ", "").replace("　", "")  # ハイフン除去
 
         result = track_package(number)
 
         if "error" in result:
             embed = discord.Embed(title="エラー",
-                                    description=result['error'],
-                                    color=0xff0000)
+                                  description=result['error'],
+                                  color=0xff0000)
             return await ctx.response.send_message(embed=embed, ephemeral=True)
 
         else:
             embed = discord.Embed(title="追跡結果", description="",
-                                    timestamp=datetime.datetime.now(), color=0xdc143c)
+                                  timestamp=datetime.datetime.now(), color=0xdc143c)
 
             description = ""
 

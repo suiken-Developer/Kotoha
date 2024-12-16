@@ -555,7 +555,8 @@ class Akane_ai(commands.Cog):
                                     await message.reply(response, mention_author=False)
 
                                 else:
-                                    await message.reply(response + "\n\n※16行以上の返答は省略されました", file=discord.File(fp=iofile, filename="response.txt"), mention_author=False)
+                                    await message.reply(response + "\n\n※16行以上の返答は省略されました",
+                                                        file=discord.File(fp=iofile, filename="response.txt"), mention_author=False)
                             except Exception as e:
                                 print(e)
 
@@ -611,7 +612,7 @@ class Akane_ai(commands.Cog):
                             value = message.content
 
                         # エラーを専用チャンネルに投げておく
-                        error_log = self.bot.get_channel(bot.ERROR_LOG)
+                        error_log = self.bot.get_channel(self.bot.ERROR_LOG)
                         embed = discord.Embed(title="エラー",
                                               description="AIチャットにてエラーが発生しました。",
                                               timestamp=datetime.datetime.now(),

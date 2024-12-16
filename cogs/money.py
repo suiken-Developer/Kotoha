@@ -1,9 +1,7 @@
 # 組み込みライブラリ
 import secrets
-import os
 from datetime import datetime, timedelta, timezone
 import re
-import time
 import random
 import sqlite3
 import asyncio
@@ -17,7 +15,7 @@ import simplejson as json  # simplejson
 
 ##################################################
 
-SEND_TAX = 0.10 # 送金手数料
+SEND_TAX = 0.10  # 送金手数料
 
 ##################################################
 
