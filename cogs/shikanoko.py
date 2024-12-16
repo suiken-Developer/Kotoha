@@ -34,6 +34,8 @@ class Shikanoko(commands.Cog):
         self.bot = bot
         self.conn = sqlite3.connect('data/shikanoko.db')
         self.c = self.conn.cursor()
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
         # money.dbの共有接続を取得
         self.money_conn = bot.money_db_connection
@@ -86,6 +88,18 @@ class Shikanoko(commands.Cog):
     @app_commands.checks.cooldown(1, 1)
     @app_commands.describe(pcs="回数（1~20）")
     async def shikanoko(self, ctx: discord.Interaction, pcs: int = 1):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         # エラー: 回数が範囲外
         if not 0 < pcs < 21:
             embed = discord.Embed(title=":x: エラー",
@@ -157,7 +171,7 @@ class Shikanoko(commands.Cog):
                     status = f"**あたり！**\n{bonus} ZNY獲得"
 
             else:
-                status = "**はずれ！**"
+                status = "はずれ..."
 
             # 総実行回数を更新
             self.c.execute(f'UPDATE total_hits SET total_draws = total_draws + {pcs} WHERE id = 1')
@@ -181,20 +195,35 @@ class Shikanoko(commands.Cog):
             result = ""
 
             for i in results:
+                if i == "しかのこのこのここしたんたん":
+                    i = "**しかのこのこのここしたんたん**"
+
                 result += f"・{i}\n"
 
             probability = round((total_hits / total_draws) * 100, 2)
             embed = discord.Embed(title=":deer: しかのこのこのここしたんたん",
                                     description=f"{result}\n{status}",
                                     color=discord.Colour.green())
-            embed.set_footer(text=f"統計: {total_hits}/{total_draws}回当たり ({probability}%)  直近の当選者: @{latest_winner}")
-            await ctx.response.send_message(embed=embed)
+            embed.set_footer(text=f"統計: {total_hits:,}/{total_draws:,}回当たり ({probability}%)  直近の当選者: @{latest_winner}")
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     # shikanoko-ranking
 
     @app_commands.command(name="shikanoko-ranking", description="ランキング情報")
     @app_commands.checks.cooldown(2, 60)
     async def shikanoko_ranking(self, ctx: discord.Interaction):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         # データ読み込み
 
         # トップ10のユーザーを取得
@@ -223,7 +252,7 @@ class Shikanoko(commands.Cog):
             rank += 1
             previous_hits = hits
 
-            top10_users.append(f"{current_rank}位: `@{username}`  **{hits}**回")
+            top10_users.append(f"{current_rank}位: `@{username}`  **{hits:,}**回")
 
         # 自分の順位を取得
         self.c.execute('''
@@ -238,7 +267,7 @@ class Shikanoko(commands.Cog):
 
         # 自分の順位とあたり回数を表示
         if user_hits:
-            user_rank_data = f"{user_rank}位: `@{ctx.user.name}`  **{user_hits[0]}**回"
+            user_rank_data = f"{user_rank}位: `@{ctx.user.name}`  **{user_hits[0]:,}**回"
 
         else:
             user_rank_data = "集計対象外"
@@ -255,7 +284,7 @@ class Shikanoko(commands.Cog):
                             description=desc,
                             color=discord.Colour.green())
         embed.set_footer(text=f"ランキング取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
-        await ctx.response.send_message(embed=embed)
+        await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     #########################
 

@@ -17,6 +17,60 @@ import simplejson as json  # simplejson
 
 ##################################################
 
+SEND_TAX = 0.10 # 送金手数料
+
+##################################################
+
+def get_level_from_experience(total_experience):
+    """
+    総獲得経験値に基づいてレベルを計算する関数
+    経験値は指数的に増加する。
+    """
+    base_xp = 100  # レベル1→2に必要な経験値
+    growth_factor = 1.5  # 経験値増加の指数係数
+    
+    level = 1  # レベル1からスタート
+    required_xp = base_xp
+    
+    # 経験値がレベルアップに達するまで繰り返し
+    while total_experience >= required_xp:
+        total_experience -= required_xp
+        level += 1
+        required_xp = int(base_xp * (level ** growth_factor))
+
+    # レベル上限
+    if level > 100:
+        level = 100
+    
+    return level
+
+
+def get_next_level_experience(total_experience):
+    """
+    現在の総獲得経験値に基づいて次のレベルに到達するために必要な経験値を計算する関数
+    """
+    base_xp = 100  # レベル1→2に必要な経験値
+    growth_factor = 1.5  # 経験値増加の指数係数
+
+    level = 1  # レベル1からスタート
+    required_xp = base_xp
+
+    # 現在のレベルを計算
+    while total_experience >= required_xp:
+        total_experience -= required_xp
+        level += 1
+        required_xp = int(base_xp * (level ** growth_factor))
+
+    # レベル100でストップ
+    if level >= 100:
+        return 0
+
+    # 次のレベルに必要な経験値
+    next_level_experience = required_xp - total_experience
+    return next_level_experience
+
+##################################################
+
 ''' コマンド '''
 
 
@@ -25,6 +79,8 @@ class Money(commands.Cog):
         self.bot = bot
         self.conn = bot.money_db_connection
         self.c = self.conn.cursor()
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
         # ユーザー情報を保存するテーブルを作成
         self.c.execute('''
@@ -32,6 +88,9 @@ class Money(commands.Cog):
             user_id INTEGER PRIMARY KEY,
             username TEXT,
             balance INTEGER,
+            badges TXT,
+            exp INT,
+            level INT,
             total_login INTEGER,
             last_login TIMESTAMP,
             last_work TIMESTAMP,
@@ -66,12 +125,24 @@ class Money(commands.Cog):
 
     # balance
 
-    @group.command(name="balance", description="ウォレットの残高を表示します")
+    @group.command(name="balance", description="所持金を表示します")
     @app_commands.checks.cooldown(2, 10)
     async def money_balance(self, ctx: discord.Interaction):
         # DBでuser_idが存在するか確認
         self.c.execute('SELECT balance, last_login FROM user_data WHERE user_id = ?', (ctx.user.id,))
         result = self.c.fetchone()
+
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
 
         # ウォレットを持っていれば表示
         if result:
@@ -87,10 +158,10 @@ class Money(commands.Cog):
             self.conn.commit()
 
             embed = discord.Embed(title=f"@{ctx.user.name} のウォレット",
-                                  description=f"**残高**: {balance} ZNY",
+                                  description=f"**所持金**: {balance:,} ZNY",
                                   color=discord.Colour.green())
             embed.set_footer(text=f"最終ログイン: {formatted_last_login}")
-            await ctx.response.send_message(embed=embed)
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
         else:
             # 持っていない
@@ -104,8 +175,20 @@ class Money(commands.Cog):
     @group.command(name="login", description="マネーシステムにログインします")
     async def money_login(self, ctx: discord.Interaction):
         # DBでuser_idが存在するか確認
-        self.c.execute('SELECT * FROM user_data WHERE user_id = ?', (ctx.user.id,))
+        self.c.execute('SELECT balance, exp, level, total_login, last_login FROM user_data WHERE user_id = ?', (ctx.user.id,))
         result = self.c.fetchone()
+
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
 
         now = datetime.now(timezone.utc) # 現在時刻(UTC)
         now_str = now.isoformat()
@@ -117,7 +200,7 @@ class Money(commands.Cog):
 
         # ウォレットを持っていればログイン、持っていなければ作成
         if result:
-            balance, total_login, last_login = result[2], result[3], result[4]
+            balance, exp, level, total_login, last_login = result[0], result[1], result[2], result[3], result[4]
 
             # UTC+9変換と翌日計算
             last_login_dt = datetime.fromisoformat(last_login).astimezone(jst)
@@ -130,52 +213,91 @@ class Money(commands.Cog):
                 # 7日ボーナス
                 if new_total_login % 7 == 0:
                     bonus = 5000
+                    exp_bonus = 1250
+
+                    # 試験中 レベルブースト
+                    bonus += int(bonus * (level - 1) * 0.05)
+                    exp_bonus += int(exp_bonus * (level - 1) * 0.1)
 
                 else:
                     bonus = 1000
+                    exp_bonus = 250
+
+                    # 試験中 レベルブースト
+                    bonus += int(bonus * (level - 1) * 0.05)
+                    exp_bonus += int(exp_bonus * (level - 1) * 0.1)
 
                 self.c.execute('''
                     UPDATE user_data 
-                    SET balance = ?, last_login = ?, total_login = ?, username = ?
+                    SET balance = ?, badges = ?, exp = ?, last_login = ?, total_login = ?, username = ?
                     WHERE user_id = ?
-                ''', ((balance + bonus), now_str, new_total_login, ctx.user.name, ctx.user.id))
+                ''', ((balance + bonus), "", (exp + exp_bonus), now_str, new_total_login, ctx.user.name, ctx.user.id))
                 self.conn.commit()
 
-                embed = discord.Embed(title="ログインしました",
-                                    description=f"**{bonus} ZNY**を受け取りました。現在の残高は**{balance + bonus} ZNY**です。",
-                                    color=discord.Colour.green())
+                # 新しいレベルを計算
+                new_level = get_level_from_experience(exp + exp_bonus)
+
+                # レベルが上がった場合のみレベルを更新
+                if new_level != level:
+                    self.c.execute("UPDATE user_data SET level = ? WHERE user_id = ?", 
+                            (new_level, ctx.user.id))
+                    self.conn.commit()
+
+                    embed = discord.Embed(title="ログインしました",
+                                          description=f"**{bonus:,} ZNY**を獲得しました。 (+{exp_bonus:,} XP)\n所持金: {balance + bonus:,} ZNY\n**[レベルアップ！ (Lv.{result[2]}→Lv.{new_level})]**",
+                                          color=discord.Colour.green())
+
+                else:
+                    embed = discord.Embed(title="ログインしました",
+                                          description=f"**{bonus:,} ZNY**を獲得しました。 (+{exp_bonus:,} XP)\n所持金: {balance + bonus:,} ZNY",
+                                          color=discord.Colour.green())
+
                 embed.set_footer(text=f"通算ログイン日数: {new_total_login}日")
-                await ctx.response.send_message(embed=embed)
+                await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
             else:
+                next_day_unix = int(next_day.timestamp()) # UNIX時間に変換
+
                 embed = discord.Embed(title=":x: エラー",
-                                      description="今日は既にログインしています",
+                                      description=f"今日は既にログインしています。\n<t:{next_day_unix}:f>以降にお試しください。",
                                       color=0xff0000)
                 await ctx.response.send_message(embed=embed, ephemeral=True)
 
         # 持っていなければ1000ZNY与えて作成
         else:
             # last_workを適当に設定
-            last_str = (now - timedelta(hours=1)).isoformat()
+            last_str = (now - timedelta(hours=1))
 
             self.c.execute('''
-                INSERT INTO user_data (user_id, username, balance, total_login, last_login, last_work, transactions)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (ctx.user.id, ctx.user.name, 1000, 1, now_str, last_str, '[]'))
+                INSERT INTO user_data (user_id, username, balance, badges, exp, level, total_login, last_login, last_work, transactions)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (ctx.user.id, ctx.user.name, 1000, "", 0, 1, 1, now_str, last_str, '[]'))
             self.conn.commit()
 
             embed = discord.Embed(title=f"@{ctx.user.name} のウォレット",
-                                  description="ウォレットを開設し、ボーナス**1000 ZNY**を受け取りました。\n**残高**: 1000 ZNY",
+                                  description="ウォレットを開設し、ボーナス**1,000 ZNY**を受け取りました。\n所持金: 1,000 ZNY",
                                   color=discord.Colour.green())
             embed.set_footer(text=f"最終ログイン: {formatted_now_jst}")
-            await ctx.response.send_message(embed=embed)
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     # send
 
-    @group.command(name="send", description="ユーザーに送金します（手数料5%）")
+    @group.command(name="send", description="ユーザーに送金します（手数料10%）")
     @app_commands.describe(user="送金先ユーザーをメンションまたはユーザーIDで指定")
     @app_commands.describe(amount="送金金額を入力")
     async def money_send(self, ctx: discord.Interaction, user: str, amount: int):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         try:
             # メンションからID抽出
             target = re.sub("\\D", "", user)
@@ -208,16 +330,15 @@ class Money(commands.Cog):
                         sender_balance, sender_transactions = sender_data
                         target_balance, target_transactions = target_data
 
-                        now = datetime.now(timezone.utc) # 現在時刻(UTC)
-                        now_str = now.isoformat()
+                        # 所持金の範囲かつ100 ZNY以上
+                        if sender_balance >= amount and amount >= 100:
+                            transaction_time = datetime.utcnow().timestamp() # 現在時刻(UNIX)
 
-                        # UTC+9
-                        jst = timezone(timedelta(hours=9))
-                        now_jst = now.astimezone(jst)
-                        formatted_now_jst = now_jst.strftime('%Y/%m/%d %H:%M:%S')
+                            # 時間変換
+                            td = 9 # UTC+9
+                            time_difference = timezone(timedelta(hours=td))
+                            formatted_transaction_time = datetime.fromtimestamp(transaction_time, time_difference).strftime("%Y/%m/%d %H:%M:%S")
 
-                        if sender_balance >= amount and amount > 0:
-                            transaction_time = time.time()
                             transaction_id = secrets.token_hex(10)
 
                             flag = False
@@ -237,13 +358,13 @@ class Money(commands.Cog):
                                 flag = False
 
                             if flag is True:
-                                tax = int(amount * 0.05)
+                                tax = int(amount * SEND_TAX) # 手数料
 
                                 # transactionをDBに書き込み
                                 self.c.execute('''
                                     INSERT INTO transactions (transaction_id, from_user_id, to_user_id, amount, tax, datetime)
                                     VALUES (?, ?, ?, ?, ?, ?)
-                                ''', (transaction_id, ctx.user.id, target, (amount - tax), tax, now_str))
+                                ''', (transaction_id, ctx.user.id, target, (amount - tax), tax, transaction_time))
 
                                 sender_transactions = json.loads(sender_transactions)
                                 sender_transactions.append(transaction_id)
@@ -266,13 +387,13 @@ class Money(commands.Cog):
                                 self.conn.commit()
 
                                 embed = discord.Embed(title="送金完了",
-                                                      description=f"**送金元**: @{ctx.user.name}\n"
-                                                                  f"**送金先**: @{target_obj.name}\n"
-                                                                  f"**送金額**: {amount - tax} ZNY (手数料: {tax} ZNY)\n"
+                                                      description=f"**送金元**: `@{ctx.user.name}`\n"
+                                                                  f"**送金先**: `@{target_obj.name}`\n"
+                                                                  f"**送金額**: {amount - tax:,} ZNY (手数料: {tax:,} ZNY)\n"
                                                                   f"**トランザクションID**: {transaction_id}\n"
-                                                                  f"**送金時刻**: {formatted_now_jst}",
+                                                                  f"**送金時刻**: {formatted_transaction_time} (UTC+{td})",
                                                       color=discord.Colour.green())
-                                await ctx.response.send_message(embed=embed)
+                                await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
                             else:
                                 embed = discord.Embed(title=":x: エラー",
@@ -282,7 +403,7 @@ class Money(commands.Cog):
 
                         else:
                             embed = discord.Embed(title=":x: エラー",
-                                                  description="送金金額が不正です",
+                                                  description="送金金額が不正または100 ZNY未満です",
                                                   color=0xff0000)
                             await ctx.response.send_message(embed=embed, ephemeral=True)
 
@@ -303,11 +424,23 @@ class Money(commands.Cog):
     @app_commands.command(name="work", description="20分に1回働いてお金を貰えます")
     async def work(self, ctx: discord.Interaction):
         # DBでuser_idが存在するか確認
-        self.c.execute('SELECT username, balance, last_work FROM user_data WHERE user_id = ?', (ctx.user.id,))
+        self.c.execute('SELECT username, balance, exp, level, last_work FROM user_data WHERE user_id = ?', (ctx.user.id,))
         result = self.c.fetchone()
 
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         if result:
-            previous = datetime.fromisoformat(result[2])
+            previous = datetime.fromisoformat(result[4])
             now = datetime.now(timezone.utc)
             time_difference = now - previous # 秒数差計算
             seconds_difference = time_difference.total_seconds() # 秒数に直す
@@ -316,34 +449,56 @@ class Money(commands.Cog):
                 now_str = now.isoformat()
 
                 works = [300, 400, 450, 500, 550, 600, 650, 700, 750, 800, 1000]
+                xps = [100, 150, 175, 200, 225, 250]
                 salary = random.choice(works)
+                gain_xp = random.choice(xps)
+
+                # 試験中 レベルブースト
+                salary += int(salary * (result[3] - 1) * 0.05)
+                gain_xp += int(gain_xp * (result[3] - 1) * 0.1)
+
                 self.c.execute('''
                     UPDATE user_data
-                    SET balance = ?, last_work = ?, username = ?
+                    SET balance = ?, exp = ?, last_work = ?, username = ?
                     WHERE user_id = ?
-                ''', ((result[1] + salary), now_str, ctx.user.name, ctx.user.id))
+                ''', ((result[1] + salary), (result[2] + gain_xp), now_str, ctx.user.name, ctx.user.id))
 
                 self.conn.commit()
 
-                embed = discord.Embed(title=f"✅ {salary} ZNY獲得しました",
-                                      description=f"現在の所持金: {result[1] + salary} ZNY",
-                                      color=discord.Colour.green())
-                await ctx.response.send_message(embed=embed)
+                # 新しいレベルを計算
+                new_level = get_level_from_experience(result[2] + gain_xp)
+
+                # レベルが上がった場合のみレベルを更新
+                if new_level != result[3]:
+                    self.c.execute("UPDATE user_data SET level = ? WHERE user_id = ?", 
+                            (new_level, ctx.user.id))
+                    self.conn.commit()
+
+                    embed = discord.Embed(title=f"✅ {salary:,} ZNY獲得しました (+{gain_xp:,} XP)",
+                                        description=f"所持金: {result[1] + salary:,} ZNY\n**[レベルアップ！ (Lv.{result[3]}→Lv.{new_level})]**",
+                                        color=discord.Colour.green())
+
+                else:
+                    embed = discord.Embed(title=f"✅ {salary:,} ZNY獲得しました (+{gain_xp:,} XP)",
+                                        description=f"所持金: {result[1] + salary:,} ZNY",
+                                        color=discord.Colour.green())
+                
+                await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
             else:
                 embed = discord.Embed(title=":x: エラー",
-                                      description="前回の仕事から20分経過していません",
-                                      color=0xff0000)
+                                    description=f"前回の仕事から20分経過していません。\n<t:{int(previous.timestamp()) + 1200}:R>にお試しください。",
+                                    color=0xff0000)
                 await ctx.response.send_message(embed=embed, ephemeral=True)
 
 
         else:
             embed = discord.Embed(title=":x: エラー",
-                                  description="あなたはウォレットを開設していません",
-                                  color=0xff0000)
+                                description="あなたはウォレットを開設していません",
+                                color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
-    # slot
+    # slots
 
     @app_commands.command(name="slots", description="お金を賭けてスロットを回す")
     @app_commands.describe(amount="賭け金を入力")
@@ -351,20 +506,33 @@ class Money(commands.Cog):
         # DBでuser_idが存在するか確認
         self.c.execute('SELECT username, balance FROM user_data WHERE user_id = ?', (ctx.user.id,))
         result = self.c.fetchone()
+        balance = result[1]
+
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = False
+
+        #####
 
         if result:
-            if amount > 0 and result[1] >= amount:
+            if amount > 0 and result[1] >= amount and amount <= 200000:
                 # メッセージ送信前に結果を確定する
                 slots = [1, 2, 3, 4, 5, 6]
-                odds = [4, 6, 8, 15, 30, 50]
+                odds = [4.0, 6.0, 8.0, 15, 30, 50]
                 weights = [50, 30, 20, 15, 5, 1]
-                emojis = ["<:slot1:1278510275976237056>", "<:slot2:1278510274437054484>", "<:slot3:1278510272222462034>",
-                        "<:slot4:1278510270834282579>", "<:slot5:1278510269378723860>", "<:slot6:1278510267789082624>"]
+                emojis = ["<:SLOT_1:1310233464888360981>", "<:SLOT_2:1310233480583577660>", "<:SLOT_3:1310233497696342210>",
+                        "<:SLOT_4:1310233526771384440>", "<:SLOT_5:1310233545909993502>", "<:SLOT_6:1310233563567886356>"]
                 slot_result = random.choices(slots, k=3, weights=weights)
                 bonus = (amount * -1)
 
                 if len(set(slot_result)) == 1:
-                    bonus = amount * (odds[slot_result[0] - 1] - 1)
+                    bonus = int(amount * (odds[slot_result[0] - 1] - 1))
                     wo = f"×{odds[slot_result[0] - 1]} WIN!"
 
                 else:
@@ -382,14 +550,15 @@ class Money(commands.Cog):
 
                 try:
                     await ctx.response.send_message("**`___SLOTS___`**\n"
-                    "`|`<a:slot_m1:1278511456412897310><a:slot_m2:1278511861842575460><a:slot_m3:1278512059872444509>`|`\n"
+                    "`|`<a:SLOT_M1:1310233252950446112><a:SLOT_M2:1310233262274117642><a:SLOT_M3:1310233271392534550>`|`\n"
                     "`|         |`\n"
                     "`|_________|`\n"
-                    f"**BET**: {amount} ZNY")
+                    f"**BET**: {amount:,} ZNY\n"
+                    f"**所持金**: {balance:,} ZNY", ephemeral=ephemeral)
 
                     # 3回の編集を試みる
-                    edits = [f"`|`{emojis[slot_result[0] - 1]}<a:slot_m2:1278511861842575460><a:slot_m3:1278512059872444509>`|`\n",
-                            f"`|`{emojis[slot_result[0] - 1]}<a:slot_m2:1278511861842575460>{emojis[slot_result[2] - 1]}`|`\n",
+                    edits = [f"`|`{emojis[slot_result[0] - 1]}<a:SLOT_M2:1310233262274117642><a:SLOT_M3:1310233271392534550>`|`\n",
+                            f"`|`{emojis[slot_result[0] - 1]}<a:SLOT_M2:1310233262274117642>{emojis[slot_result[2] - 1]}`|`\n",
                             f"`|`{emojis[slot_result[0] - 1]}{emojis[slot_result[1] - 1]}{emojis[slot_result[2] - 1]}`|`\n",]
 
                     for i in range(3):
@@ -400,10 +569,17 @@ class Money(commands.Cog):
                                     + f"{edits[i]}" \
                                     + "`|         |`\n" \
                                     + "`|_________|`\n" \
-                                    + f"**BET**: {amount} ZNY"
+                                    + f"**BET**: {amount:,} ZNY\n" \
+                                    + f"**所持金**: {balance:,} ZNY"
 
                             if i == 2:
-                                content += f"\n**{wo}** ({bonus:+} ZNY)"
+                                content = "**`___SLOTS___`**\n" \
+                                    + f"{edits[2]}" \
+                                    + "`|         |`\n" \
+                                    + "`|_________|`\n" \
+                                    + f"**{wo}** ({int(bonus):+,} ZNY)\n" \
+                                    + f"**BET**: {amount:,} ZNY\n" \
+                                    + f"**所持金**: {(result[1] + bonus):,} ZNY"
 
                             await ctx.edit_original_response(content=content)
 
@@ -412,20 +588,20 @@ class Money(commands.Cog):
 
                 except Exception:
                     embed = discord.Embed(title=":x: エラー",
-                                          description=f"不明なエラーが発生しました。\nスロット結果: {bonus:+} ZNY",
+                                          description=f"不明なエラーが発生しましたが、スロットは正常に終了しました。\nスロット結果: {bonus:+,} ZNY",
                                           color=0xff0000)
                     await ctx.response.send_message(embed=embed, ephemeral=True)
 
             else:
                 embed = discord.Embed(title=":x: エラー",
-                                      description="賭け金の値が不正です",
+                                      description=f"残高不足または賭け金が正しくありません。\n賭け金は1～200,000 ZNYである必要があります。\n所持金: {result[1]:,} ZNY",
                                       color=0xff0000)
                 await ctx.response.send_message(embed=embed, ephemeral=True)
 
 
         else:
             embed = discord.Embed(title=":x: エラー",
-                                  description="あなたはウォレットを開設していません",
+                                  description="あなたはまだウォレットを開設していません。\n`/money login`を実行して開設してください。",
                                   color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
 
@@ -438,16 +614,28 @@ class Money(commands.Cog):
         self.c.execute('SELECT username, balance FROM user_data WHERE user_id = ?', (ctx.user.id,))
         result = self.c.fetchone()
 
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = False
+
+        #####
+
         if result:
-            if amount > 0 and result[1] >= amount:
+            if amount > 0 and result[1] >= amount and amount <= 30000:
                 # メッセージ送信前に結果を確定する
-                emojis = ["<:cf_h:1278690322519560262>", "<:cf_t:1278690320472870972>"]
+                emojis = ["<:COIN_FRONT:1310228758246195220>", "<:COIN_BACK:1310228896079151184>"]
                 cf_result = random.choice([True, False])
                 bonus = (amount * -1)
 
                 if cf_result is True:
                     bonus = amount
-                    wo = f"WIN! ×2"
+                    wo = f"WIN! ×2.0"
                     emoji = emojis[0]
 
                 else:
@@ -466,16 +654,18 @@ class Money(commands.Cog):
 
                 try:
                     await ctx.response.send_message("**`__コイントス__`**\n"
-                        f"<a:coinflip:1278690240869044247> 抽選中...\n"
-                        f"**BET**: {amount} ZNY")
+                        f"<a:COINFLIP:1310231581960437760> 抽選中...\n"
+                        f"**BET**: {amount:,} ZNY\n"
+                        f"**所持金**: {result[1]:,} ZNY", ephemeral=ephemeral)
 
                     # 編集を試みる
                     await asyncio.sleep(0.8)
 
                     try:
                         content = "**`__コイントス__`**\n" \
-                                + f"{emoji} **{wo}** ({bonus:+} ZNY)\n" \
-                                + f"**BET**: {amount} ZNY"
+                                + f"{emoji} **{wo}** ({bonus:+,} ZNY)\n" \
+                                + f"**BET**: {amount:,} ZNY\n" \
+                                + f"**所持金**: {(result[1] + bonus):,} ZNY"
 
                         await ctx.edit_original_response(content=content)
 
@@ -484,28 +674,146 @@ class Money(commands.Cog):
 
                 except Exception:
                     embed = discord.Embed(title=":x: エラー",
-                                          description=f"不明なエラーが発生しました。\n結果: {bonus:+} ZNY",
+                                          description=f"不明なエラーが発生しました。\n結果: {bonus:+,} ZNY",
                                           color=0xff0000)
                     await ctx.response.send_message(embed=embed, ephemeral=True)
 
             else:
                 embed = discord.Embed(title=":x: エラー",
-                                      description="賭け金の値が不正です",
+                                      description=f"残高不足または賭け金が正しくありません。\n賭け金は1～30,000 ZNYである必要があります。\n現在の所持金: {result[1]:,} ZNY",
                                       color=0xff0000)
                 await ctx.response.send_message(embed=embed, ephemeral=True)
 
 
         else:
             embed = discord.Embed(title=":x: エラー",
-                                  description="あなたはウォレットを開設していません",
+                                  description="あなたはウォレットを開設していません。\n`/money login`を実行して開設してください。",
                                   color=0xff0000)
             await ctx.response.send_message(embed=embed, ephemeral=True)
+
+    # profile
+
+    @app_commands.command(name="profile", description="プロフィールを確認する")
+    @app_commands.describe(user="ユーザーをメンションまたはユーザーIDで指定")
+    async def profile(self, ctx: discord.Interaction, user: str = None):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = False
+
+        #####
+
+        if user:
+            # メンションからID抽出
+            target = re.sub("\\D", "", str(user))
+
+            # ユーザーIDからユーザーを取得
+            try:
+                user = await self.bot.fetch_user(target)
+
+            # できなかったらエラー出す
+            except Exception:
+                embed = discord.Embed(title=":x: エラー",
+                                      description="そのユーザーを取得できませんでした",
+                                      color=0xff0000)
+                await ctx.response.send_message(embed=embed, ephemeral=True)
+
+        else:
+            user = await self.bot.fetch_user(ctx.user.id)
+            target = ctx.user.id
+
+        embed = discord.Embed(title="プロフィール",
+                              description="",
+                              color=discord.Colour.green())
+
+        # アイコンが設定できるならしておく
+        if hasattr(user.avatar, 'key'):
+            embed.set_thumbnail(url=user.avatar.url)
+
+        # DBでuser_idが存在するか確認
+        self.c.execute('SELECT balance, badges, exp, total_login FROM user_data WHERE user_id = ?', (target,))
+        result = self.c.fetchone()
+        
+        if result:
+            balance = f"{result[0]:,} ZNY"
+            badges = result[1]
+            exp = result[2]
+            total = result[3]
+            level = get_level_from_experience(exp)
+            next_xp = get_next_level_experience(exp)
+
+            if len(badges) == 0:
+                badges = "なし"
+        
+        else:
+            balance = "(ウォレット未開設)"
+            badges = "なし"
+            exp = 0
+            total = 0
+
+        # DBでuser_idが存在するか確認
+        self.c_settings.execute('SELECT spotify_time, spotify_total_time FROM user_settings WHERE user_id = ?', (target,))
+        settings_result = self.c_settings.fetchone()
+
+        if settings_result:
+            if settings_result[0] == True:
+                spotify_time = settings_result[1]
+
+            else:
+                spotify_time = 0
+
+        else:
+            spotify_time = 0
+
+        # Bot判定
+        if str(user.discriminator) != "0":
+            # Akane判定
+            if user.id == 777557090562474044:
+                embed.add_field(name=f"{user.name}#{user.discriminator} [SYSTEM]", value=f"**総経験値**: 3,950,079 XP", inline=False)
+                embed.add_field(name="バッジ", value="🛠️🤖", inline=True)
+                embed.add_field(name="ステータス", value=f"このユーザーはシステムBOTです", inline=True)
+
+            else:
+                embed.add_field(name=f"{user.name}#{user.discriminator} [BOT]", value=f"**総経験値**: 0 XP", inline=False)
+                embed.add_field(name="バッジ", value="🤖", inline=True)
+                embed.add_field(name="ステータス", value=f"このユーザーはBOTです", inline=True)
+
+        else:
+            if level == 100:
+                embed.add_field(name=f"@{user.name} [Lv.{level}]", value=f"**最大レベル到達**\n**総経験値**: {exp:,} XP", inline=False)
+
+            else:
+                embed.add_field(name=f"@{user.name} [Lv.{level}]", value=f"あと **{next_xp:,} XP** で **Lv.{min(level + 1, 100)}**\n**総経験値**: {exp:,} XP", inline=False)
+
+            embed.add_field(name="バッジ", value=badges, inline=True)
+            embed.add_field(name="ステータス", value=f"**所持金**: {balance}\n**通算ログイン日数**: {total}日\n**Spotify再生時間**: {spotify_time:,}分", inline=True)
+
+        await ctx.response.send_message(embed=embed ,ephemeral=ephemeral)
+
+
 
     # ranking
 
     @group.command(name="ranking", description="長者番付")
     async def ranking(self, ctx: discord.Interaction):
         # データ読み込み
+
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = False
+
+        #####
 
         # トップ10のユーザーを取得
         self.c.execute('''
@@ -533,7 +841,7 @@ class Money(commands.Cog):
             rank += 1
             previous_balance = balance
 
-            top10_users.append(f"{current_rank}位: `@{username}`  **{balance} ZNY**")
+            top10_users.append(f"{current_rank}位: `@{username}`  **{balance:,} ZNY**")
 
         # 自分の順位を取得
         self.c.execute('''
@@ -548,7 +856,7 @@ class Money(commands.Cog):
 
         # 自分の順位とあたり回数を表示
         if user_balance:
-            user_rank_data = f"{user_rank}位: `@{ctx.user.name}`  **{user_balance[0]} ZNY**"
+            user_rank_data = f"{user_rank}位: `@{ctx.user.name}`  **{user_balance[0]:,} ZNY**"
 
         else:
             user_rank_data = "集計対象外"
@@ -570,10 +878,10 @@ class Money(commands.Cog):
         formatted_now_jst = now_jst.strftime('%Y/%m/%d %H:%M:%S')
 
         embed = discord.Embed(title="長者番付",
-                            description=desc,
-                            color=discord.Colour.green())
+                              description=desc,
+                              color=discord.Colour.green())
         embed.set_footer(text=f"ランキング取得時刻: {formatted_now_jst}")
-        await ctx.response.send_message(embed=embed)
+        await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     # give
 
@@ -598,7 +906,89 @@ class Money(commands.Cog):
 
             self.conn.commit()
 
-            await ctx.reply(f":white_check_mark: `{userid}`に**{val} ZNY**与えました", mention_author=False)
+            await ctx.reply(f":white_check_mark: `{userid}`に**{val:,} ZNY**与えました", mention_author=False)
+
+        else:
+            await ctx.reply(":x: そのユーザーのウォレットは作成されていません", mention_author=False)
+
+    # givexp
+
+    @commands.command()
+    @commands.is_owner()
+    async def givexp(self, ctx: discord.Interaction, userid: int, val: int):
+        # DBでuser_idが存在するか確認
+        self.c.execute('SELECT exp, level FROM user_data WHERE user_id = ?', (userid,))
+        result = self.c.fetchone()
+
+        if result:
+            new_exp = result[0] + val
+
+            if new_exp < 0:
+                new_exp = 0
+
+            level = get_level_from_experience(new_exp)
+
+            self.c.execute('''
+                UPDATE user_data
+                SET exp = ?, level = ?
+                WHERE user_id = ?
+            ''', (new_exp, level, userid))
+
+            self.conn.commit()
+
+            await ctx.reply(f":white_check_mark: `{userid}`に**{val:,} XP**与えました (Lv.{result[1]}→Lv.{level})", mention_author=False)
+
+        else:
+            await ctx.reply(":x: そのユーザーのウォレットは作成されていません", mention_author=False)
+
+    # resetwork
+
+    @commands.command()
+    @commands.is_owner()
+    async def resetwork(self, ctx: discord.Interaction, userid: int):
+        # DBでuser_idが存在するか確認
+        self.c.execute('SELECT last_work FROM user_data WHERE user_id = ?', (userid,))
+        result = self.c.fetchone()
+
+        if result:
+            # 最終workを適当に設定
+            last_str = datetime(2000, 1, 1, 0, 0, tzinfo=timezone.utc).isoformat()
+
+            self.c.execute('''
+                UPDATE user_data
+                SET last_work = ?
+                WHERE user_id = ?
+            ''', (last_str, userid))
+
+            self.conn.commit()
+
+            await ctx.reply(f":white_check_mark: `{userid}`のworkをリセットしました", mention_author=False)
+
+        else:
+            await ctx.reply(":x: そのユーザーのウォレットは作成されていません", mention_author=False)
+
+    # resetlogin
+
+    @commands.command()
+    @commands.is_owner()
+    async def resetlogin(self, ctx: discord.Interaction, userid: int):
+        # DBでuser_idが存在するか確認
+        self.c.execute('SELECT last_login FROM user_data WHERE user_id = ?', (userid,))
+        result = self.c.fetchone()
+
+        if result:
+            # 最終workを適当に設定
+            last_str = datetime(2000, 1, 1, 0, 0, tzinfo=timezone.utc).isoformat()
+
+            self.c.execute('''
+                UPDATE user_data
+                SET last_login = ?
+                WHERE user_id = ?
+            ''', (last_str, userid))
+
+            self.conn.commit()
+
+            await ctx.reply(f":white_check_mark: `{userid}`のloginをリセットしました", mention_author=False)
 
         else:
             await ctx.reply(":x: そのユーザーのウォレットは作成されていません", mention_author=False)

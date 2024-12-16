@@ -15,6 +15,8 @@ from discord.ext import commands  # Bot Commands Framework
 class Delete(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -29,6 +31,18 @@ class Delete(commands.Cog):
     @app_commands.default_permissions(administrator=True)
     @app_commands.describe(num="削除件数を指定 (1~100)")
     async def delete(self, ctx: discord.Interaction, num: int):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         if not ctx.guild:
             embed = discord.Embed(title=":x: エラー",
                                   description="このコマンドはDMで使用できません",
@@ -59,7 +73,7 @@ class Delete(commands.Cog):
                 embed = discord.Embed(title=":white_check_mark: 成功",
                                       description=f"`{len(deleted)}`件のメッセージを削除しました",
                                       color=discord.Colour.green())
-                await ctx.followup.send(embed=embed, ephemeral=True)
+                await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     #########################
 

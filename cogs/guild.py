@@ -12,6 +12,8 @@ from discord.ext import commands  # Bot Commands Framework
 class Guild(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -25,7 +27,17 @@ class Guild(commands.Cog):
     @app_commands.command(name="getguildicon", description="このサーバーのアイコンを取得します")
     @app_commands.checks.cooldown(2, 15)
     async def getguildicon(self, ctx: discord.Interaction):
-        # if c
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
 
         try:
             guildicon = ctx.guild.icon.replace(static_format='png')
@@ -38,9 +50,9 @@ class Guild(commands.Cog):
 
         else:
             embed = discord.Embed(title="サーバーアイコン",
-                                  description=":white_check_mark:画像を取得しました。")
+                                  description=":white_check_mark: 画像を取得しました。")
             embed.set_thumbnail(url=guildicon)
-            await ctx.response.send_message(embed=embed, ephemeral=True)
+            await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     #########################
 

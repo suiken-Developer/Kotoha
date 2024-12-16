@@ -13,6 +13,8 @@ import scratchattach as scratch3  # scratchattach
 class Scratch(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
 
@@ -31,6 +33,18 @@ class Scratch(commands.Cog):
     @app_commands.checks.cooldown(2, 10)
     @app_commands.describe(user="ユーザー名")
     async def scratch_userinfo(self, ctx: discord.Interaction, user: str):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         await ctx.response.defer()
 
         try:
@@ -86,7 +100,7 @@ class Scratch(commands.Cog):
                             value=user.wiwo, inline=False)
             embed.set_footer(text=f"アカウント作成日時: {jd[:4]}/{jd[5:7]}/{jd[8:10]} {jd[11:19]}")
 
-            await ctx.followup.send(embed=embed)
+            await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     # ff
 
@@ -99,6 +113,18 @@ class Scratch(commands.Cog):
         discord.app_commands.Choice(name="following", value="following"),
         discord.app_commands.Choice(name="follower", value="follower"),])
     async def scratch_ff(self, ctx: discord.Interaction, mode: str, target: str, user: str):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         await ctx.response.defer()
 
         try:
@@ -131,7 +157,7 @@ class Scratch(commands.Cog):
                     embed = discord.Embed(title="フォロー判定",
                                           description=f"`@{target}`は`@{user}`を**フォロー{status}**",
                                           color=discord.Colour.green())
-                    await ctx.followup.send(embed=embed)
+                    await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
             if mode == "follower":
                 try:
@@ -153,7 +179,7 @@ class Scratch(commands.Cog):
                     embed = discord.Embed(title="フォロワー判定",
                                           description=f"`@{target}`は`@{user}`に**フォロー{status}**",
                                           color=discord.Colour.green())
-                    await ctx.followup.send(embed=embed)
+                    await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     #########################
 

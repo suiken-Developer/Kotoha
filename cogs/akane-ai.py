@@ -21,10 +21,7 @@ load_dotenv()  # .env読み込み
 ''' 定数群 '''
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")  # Gemini API Key
-
-VERSION = os.getenv("VERSION")
-PREFIX = os.getenv("PREFIX")
-ERROR_LOG = int(os.getenv("ERROR_LOG"))  # エラーログを投げるチャンネル
+PREFIX = "k."
 AI_COMMANDS = ["aihelp", "chara", "stats", "clear", "count"]  # 無視するコマンド
 
 ##################################################
@@ -96,9 +93,22 @@ with open("data/prompts/hiroyuki.txt", encoding="UTF-8") as f:
 with open("data/prompts/koishi.txt", encoding="UTF-8") as f:
     KOISHI_PROMPT = f.read()
 
-SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, JINROU_PROMPT, ZUNDAMON_PROMPT, ANAGOSAN_PROMPT, HIROYUKI_PROMPT, KOISHI_PROMPT]
-CHARAS = ["琴葉茜", "琴葉葵", "人狼（β版）", "ずんだもん", "アナゴさん", "ひろゆき", "古明地こいし"]
-AI_COMMANDS = [f"{PREFIX}{i}" for i in AI_COMMANDS]
+with open("data/prompts/bocchi.txt", encoding="UTF-8") as f:
+    BOCCHI_PROMPT = f.read()
+
+with open("data/prompts/vegeta.txt", encoding="UTF-8") as f:
+    VEGETA_PROMPT = f.read()
+
+with open("data/prompts/reimu.txt", encoding="UTF-8") as f:
+    REIMU_PROMPT = f.read()
+
+with open("data/prompts/marisa.txt", encoding="UTF-8") as f:
+    MARISA_PROMPT = f.read()
+
+SYSTEM_PROMPTS = [AKANE_PROMPT, AOI_PROMPT, JINROU_PROMPT, ZUNDAMON_PROMPT, ANAGOSAN_PROMPT,
+                  HIROYUKI_PROMPT, KOISHI_PROMPT, BOCCHI_PROMPT, VEGETA_PROMPT, REIMU_PROMPT, MARISA_PROMPT]
+CHARAS = ["琴葉茜", "琴葉葵", "人狼（β版）", "ずんだもん", "アナゴさん",
+          "ひろゆき", "古明地こいし", "後藤ひとり", "ベジータ", "博麗霊夢", "霧雨魔理沙"]
 
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -146,6 +156,7 @@ def help_embed(mode):
                          f"`{'k.aihelp'.ljust(12)}` このヘルプ画面を表示する\n"
                          f"`{'k.chara'.ljust(12)}` AIのキャラクターを変更する\n"
                          f"`{'k.clear'.ljust(12)}` 会話履歴のリセット\n"
+                         f"`{'k.count'.ljust(12)}` 自分の総会話回数の表示\n"
                          f"`{'k.stats'.ljust(12)}` 統計情報の表示",
                     inline=False)
     embed.set_footer(text="不具合等連絡先: @bz6")
@@ -283,6 +294,10 @@ class SelectView(View):
             discord.SelectOption(label="アナゴさん", value="4", description="サザエさん"),
             discord.SelectOption(label="ひろゆき", value="5", description="2ちゃんねるの創設者"),
             discord.SelectOption(label="古明地こいし", value="6", description="東方Project"),
+            discord.SelectOption(label="後藤ひとり", value="7", description="ぼっち・ざ・ろっく！ [新システム]"),
+            discord.SelectOption(label="ベジータ", value="8", description="ドラゴンボール [新システム]"),
+            discord.SelectOption(label="博麗霊夢", value="9", description="東方Project [新システム]"),
+            discord.SelectOption(label="霧雨魔理沙", value="10", description="東方Project [新システム]"),
         ],
     )
     async def selectMenu(self, ctx: discord.Interaction, select: Select):
@@ -317,6 +332,8 @@ class Akane_ai(commands.Cog):
     # Cog読み込み時
     @commands.Cog.listener()
     async def on_ready(self):
+        global AI_COMMANDS
+        AI_COMMANDS = [f"{PREFIX}{i}" for i in AI_COMMANDS]
         print("akane-aiCog on ready")
 
     # help
@@ -332,7 +349,7 @@ class Akane_ai(commands.Cog):
             with open(f"data/ai/{ctx.author.id}.json", "r", encoding='UTF-8') as f:
                 ai_data = json.load(f)
 
-            await ctx.reply(f"あなたの総会話回数: {ai_data[0]}回（保存中の会話履歴: 直近{min(len(ai_data) - 2, 30)}件）",
+            await ctx.reply(f"あなたの総会話回数: {ai_data[0]:,}回（保存中の会話履歴: 直近{min(len(ai_data) - 2, 30)}件）",
                             mention_author=False)
 
         else:
@@ -404,11 +421,11 @@ class Akane_ai(commands.Cog):
 
         else:
             embed = discord.Embed(title="Akane AI 統計情報",
-                                  description=f"**総会話回数**\n{total_talks}回\n\n"
-                                              f"**総ユーザー数**\n{total_users}人\n\n"
-                                              f"**AIモデル**\n{AIMODEL_NAME}\n\n",
-                                  color=discord.Colour.green())
-            embed.set_footer(text=f"Akane v{VERSION}")
+                                  description="", color=discord.Colour.green())
+            embed.add_field(name="総会話回数", value=f"{total_talks:,}回")
+            embed.add_field(name="総ユーザー数", value=f"{total_users:,}人")
+            embed.add_field(name="AIモデル", value=f"`{AIMODEL_NAME}`")
+            embed.set_footer(text=f"Akane v{self.bot.VERSION}")
             await ctx.reply(embed=embed, mention_author=False)
 
     # #akane-ai
@@ -422,7 +439,7 @@ class Akane_ai(commands.Cog):
             return
 
         # メイン処理
-        if message.channel.name == "akane-ai":
+        elif message.channel.name == "akane-ai":
             async with message.channel.typing():
                 # 画像データかどうか（画像は過去ログ使用不可）
                 if message.attachments:
@@ -594,7 +611,7 @@ class Akane_ai(commands.Cog):
                             value = message.content
 
                         # エラーを専用チャンネルに投げておく
-                        error_log = self.bot.get_channel(ERROR_LOG)
+                        error_log = self.bot.get_channel(bot.ERROR_LOG)
                         embed = discord.Embed(title="エラー",
                                               description="AIチャットにてエラーが発生しました。",
                                               timestamp=datetime.datetime.now(),

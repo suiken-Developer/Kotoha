@@ -15,6 +15,8 @@ from discord.ext import commands  # Bot Commands Framework
 class Fun(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -26,6 +28,18 @@ class Fun(commands.Cog):
     # cat
     @app_commands.command(name="cat", description="ﾈｺﾁｬﾝ")
     async def cat(self, ctx: discord.Interaction):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         nekos = ["🐱( '-' 🐱 )ﾈｺﾁｬﾝ", "ﾆｬﾝฅ(>ω< )ฅﾆｬﾝ♪",
                  "ฅ•ω•ฅﾆｬﾆｬｰﾝ✧", "ฅ( ̳• ·̫ • ̳ฅ)にゃあ",
                  "ﾆｬｯ(ฅ•ω•ฅ)", "ฅ•ω•ฅにぁ？",
@@ -58,7 +72,7 @@ class Fun(commands.Cog):
                  "ฅ•ω•ฅﾆｬﾆｬｰﾝ✧", "๑•̀ㅁ•́ฅ✧にゃ!!",
                  "ヾ(⌒(_*Φ ﻌ Φ*)_ﾆｬｰﾝ♡",
                  "ᗦ↞◃ ᗦ↞◃ ᗦ↞◃ ᗦ↞◃ ฅ(^ω^ฅ) ﾆｬ～"]
-        await ctx.response.send_message(random.choice(nekos))
+        await ctx.response.send_message(random.choice(nekos), ephemeral=ephemeral)
 
     # dice
 
@@ -66,6 +80,18 @@ class Fun(commands.Cog):
     @app_commands.describe(pcs="サイコロの個数（1~100）")
     @app_commands.describe(maximum="サイコロの最大値（1～999）")
     async def dice(self, ctx: discord.Interaction, pcs: int = 1, maximum: int = 6):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         # エラー: サイコロの個数が範囲外
         if not 0 < pcs < 101:
             embed = discord.Embed(title=":x: エラー",
@@ -91,14 +117,25 @@ class Fun(commands.Cog):
                 word_list = word_list[:(maximum - 1)]
                 dices = [random.choice(word_list) for i in range(pcs)]
 
-            await ctx.response.send_message(
-                f":game_die: {', '.join(map(str, dices))}が出たで")
+            await ctx.response.send_message(f":game_die: {', '.join(map(str, dices))}が出たで", ephemeral=ephemeral)
 
     # kuji
 
     @app_commands.command(name="kuji", description="おみくじ")
     @app_commands.describe(pcs="引く枚数（1~100）")
     async def kuji(self, ctx: discord.Interaction, pcs: int = 1):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         # エラー: 枚数が範囲外
         if not 0 < pcs < 101:
             embed = discord.Embed(title=":x: エラー",
@@ -119,10 +156,10 @@ class Fun(commands.Cog):
                     kuji_results[i] = f"**{j}**"
 
                 await ctx.response.send_message(f"今日の運勢は... {', '.join(map(str, kuji_results))}！"
-                                                f"（{pcs}連おみくじ総合運勢: **{omikuji_list[(points // pcs) - 1]}）**")
+                                                f"（{pcs}連おみくじ総合運勢: **{omikuji_list[(points // pcs) - 1]}）**", ephemeral=ephemeral)
 
             else:
-                await ctx.response.send_message(f"今日の運勢は... **{random.choice(omikuji_list)}**！")
+                await ctx.response.send_message(f"今日の運勢は... **{random.choice(omikuji_list)}**！", ephemeral=ephemeral)
 
     # じゃんけん
 
@@ -131,11 +168,11 @@ class Fun(commands.Cog):
         button1 = discord.ui.Button(label="ぐー", style=discord.ButtonStyle.primary, custom_id="j_g")
         button2 = discord.ui.Button(label="ちょき", style=discord.ButtonStyle.success, custom_id="j_c")
         button3 = discord.ui.Button(label="ぱー", style=discord.ButtonStyle.danger, custom_id="j_p")
-        view = discord.ui.View()
+        view = discord.ui.View(timeout=60)
         view.add_item(button1)
         view.add_item(button2)
         view.add_item(button3)
-        await ctx.response.send_message("最初はぐー、じゃんけん", view=view)
+        await ctx.response.send_message("最初はぐー、じゃんけん", view=view, ephemeral=ephemeral)
 
     #########################
 

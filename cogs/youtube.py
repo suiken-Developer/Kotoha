@@ -13,6 +13,8 @@ from yt_dlp import YoutubeDL  # yt-dlp
 class YouTube(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -33,6 +35,18 @@ class YouTube(commands.Cog):
     ])
     async def ytdl(self, ctx: discord.Interaction, url: str,
                    option: discord.app_commands.Choice[int] = None):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         await ctx.response.defer()
 
         if url.startswith("https://www.youtube.com/playlist"):
@@ -46,15 +60,15 @@ class YouTube(commands.Cog):
 
             try:
                 if option.value == 1:
-                    youtube_dl_opts = {'format': 'bestvideo', 'max-downloads': '1'}
+                    youtube_dl_opts = {'format': 'bestvideo', 'max-downloads': '1', "cookiefile": "data/cookie.txt"}
                     opt = "動画のみ"
 
                 elif option.value == 2:
-                    youtube_dl_opts = {'format': 'bestaudio[ext=m4a]', 'max-downloads': '1'}
+                    youtube_dl_opts = {'format': 'bestaudio[ext=m4a]', 'max-downloads': '1', "cookiefile": "data/cookie.txt"}
                     opt = "音声のみ"
 
             except Exception:
-                youtube_dl_opts = {'format': 'best', 'max-downloads': '1'}
+                youtube_dl_opts = {'format': 'best', 'max-downloads': '1', "cookiefile": "data/cookie.txt"}
                 opt = "なし"
 
             try:
@@ -63,11 +77,12 @@ class YouTube(commands.Cog):
                     video_url = info_dict.get("url", None)
                     video_title = info_dict.get('title', None)
 
-            except Exception:
+            except Exception as e:
                 embed = discord.Embed(title=":x: エラー",
                                       description="エラーが発生しました。",
                                       color=0xff0000)
                 await ctx.followup.send(embed=embed, ephemeral=True)
+                print(e)
 
             else:
                 embed = discord.Embed(
@@ -77,7 +92,7 @@ class YouTube(commands.Cog):
                                 f"※YouTubeによる自動生成動画はダウンロードに失敗する場合があります\n"
                                 f":warning: 著作権に違反してアップロードされた動画をダウンロードすることは違法です",
                     color=discord.Colour.red())
-                await ctx.followup.send(embed=embed, ephemeral=True)
+                await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     #########################
 

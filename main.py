@@ -5,6 +5,7 @@ import os
 from itertools import cycle
 import random
 import sqlite3
+import time
 
 # 外部ライブラリ
 import discord
@@ -16,16 +17,32 @@ from discord import app_commands
 
 load_dotenv()  # .env読み込み
 
+intents = discord.Intents.all()
+#intents.message_content = True # (特権) メッセージインテント
+#intents.members = True # (特権) メンバーインテント
+
+bot = commands.Bot(command_prefix=os.getenv("PREFIX"), intents=intents, help_command=None)
+
 ##################################################
 
 ''' 定数群 '''
 
 TOKEN = os.getenv("TOKEN")  # Token
+TEST_TOKEN = os.getenv("TEST_TOKEN")  # テスト用BotのToken
 
 STARTUP_LOG = int(os.getenv("STARTUP_LOG"))
+bot.ERROR_LOG = int(os.getenv("ERROR_LOG"))  # エラーログを投げるチャンネル
 DEV_GUILD = int(os.getenv("DEV_GUILD"))
-PREFIX = os.getenv("PREFIX")  # Default Prefix
-VERSION = os.getenv("VERSION")
+bot.PREFIX = os.getenv("PREFIX")  # Default Prefix
+bot.VERSION = os.getenv("VERSION")
+bot.OWNER_NAME = os.getenv("OWNER_NAME")
+bot.SUPPORT_SERVER = os.getenv("SUPPORT_SERVER")
+
+# json系
+with open("data/status.json", "r", encoding="UTF-8") as f:
+    s_data = json.load(f)
+
+bot.COMMAND_COUNT = s_data["command_count"] # コマンド数
 
 ##################################################
 
@@ -33,36 +50,29 @@ VERSION = os.getenv("VERSION")
 with open("data/status.json", "r", encoding="UTF-8") as f:
     data = json.load(f)
 
-STATUS_LIST = cycle(["❓/help", f"{data['bot_guilds']} Servers", f"{data['bot_members']} Users", f"Version {VERSION}"])
-
-bot = commands.Bot(command_prefix=PREFIX, intents=discord.Intents.all(), help_command=None)
+# STATUS_LIST = cycle(["❓/help", f"{data['bot_guilds']:,} Servers", f"{data['bot_members']:,} Users", f"Version {bot.VERSION}"])
+STATUS_LIST = cycle(["❓/help", f"{data['bot_guilds']:,} Servers", f"Version {bot.VERSION}"])
 
 # DB操作
-money_db_connection = sqlite3.connect("data/money.db") # money.dbの接続を作成
-bot.money_db_connection = money_db_connection
+bot.money_db_connection = sqlite3.connect("data/money.db") # money.dbの接続を作成
+bot.settings_db_connection = sqlite3.connect("data/settings.db") # settings.dbの接続を作成
 
 
 # 起動通知
 @bot.event
 async def on_ready():
     print("[Akane] ログインしました")
+    start_time = time.time() # 起動タイムを計測
     bot_guilds = len(bot.guilds)
-    bot_members = []
-
-    for guild in bot.guilds:
-        for member in guild.members:
-            if member.bot:
-                pass
-
-            else:
-                bot_members.append(member)
+    # bot_members = bot.users
 
     # jsonにこの情報を出力しておく
     with open("data/status.json", "r", encoding="UTF-8") as f:
         s_data = json.load(f)
 
     s_data["bot_guilds"] = bot_guilds
-    s_data["bot_members"] = len(bot_members)
+    # s_data["bot_members"] = bot_members
+    bot_members = 0
     # s_data["bot_realmembers"] = list(set(bot_members))
 
     # データの保存
@@ -76,11 +86,12 @@ async def on_ready():
     try:
         ready_log = await bot.fetch_channel(STARTUP_LOG)
         embed = discord.Embed(title="Akane 起動完了",
-                              description=f"**Akane#0940** が起動しました。"
-                              f"\n```サーバー数: {len(bot_guilds)}\n"
-                              f"ユーザー数: {len(bot_members)}```",
+                              description=f"**{bot.user}** (ID: {bot.user.id}) が起動しました。"
+                              f"\n```サーバー数: {bot_guilds:,}\n"
+                              f"ユーザー数: {bot_members:,}\n"
+                              f"起動時間: {round(time.time() - start_time, 2)}秒```",
                               timestamp=datetime.datetime.now())
-        embed.set_footer(text=f"Akane - Ver{VERSION}")
+        embed.set_footer(text=f"Akane - Ver{bot.VERSION}")
         await ready_log.send(embed=embed)
 
     except Exception:
@@ -107,7 +118,7 @@ async def change_activity():
 @bot.command(name="devhelp")
 @commands.is_owner()
 async def devhelp(ctx):
-    desc = "```Akane 管理者用コマンドリスト```\n**管理コマンド**\n`sync`, `devsync`"
+    desc = "```Akane 管理者用コマンドリスト```\n**管理コマンド**\n`sync`, `devsync`, `stop`, `give`, `givexp` `resetwork`, `resetlogin`"
     embed = discord.Embed(title="📖コマンドリスト", description=desc)
     await ctx.reply(embed=embed, mention_author=False)
 
@@ -127,6 +138,16 @@ async def sync(ctx):
         await ctx.reply(embed=embed, mention_author=False)
 
     else:
+        # jsonにこの情報を出力しておく
+        with open("data/status.json", "r", encoding="UTF-8") as f:
+            s_data = json.load(f)
+
+        s_data["command_count"] = len(synced)
+
+        # データの保存
+        with open("data/status.json", "w", encoding="UTF-8") as f:
+            json.dump(s_data, f)
+        
         embed = discord.Embed(title=":white_check_mark: 成功",
                               description=f"{len(synced)}コマンドをSyncしました",
                               color=discord.Colour.green())
@@ -241,11 +262,13 @@ INITIAL_EXTENSIONS = [
     'cogs.web',
     'cogs.akane-talks',
     'cogs.akane-ai',
-    'cogs.money'
+    'cogs.money',
+    'cogs.settings',
+    'cogs.jppost'
 ]
 
 
-# cog読み込み
+# Cog読み込み
 async def load_extension():
     for cog in INITIAL_EXTENSIONS:
         await bot.load_extension(cog)

@@ -18,6 +18,8 @@ import requests  # requests
 class Nijigen(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -32,6 +34,18 @@ class Nijigen(commands.Cog):
     @app_commands.checks.cooldown(2, 15)
     @app_commands.describe(tags="タグを半角カンマ区切りで指定")
     async def danbooru(self, ctx: discord.Interaction, tags: str = None):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         await ctx.response.defer()
 
         try:
@@ -54,7 +68,7 @@ class Nijigen(commands.Cog):
                                       description="オプション: ランダム検索")
                 embed.set_image(url=post.media_url)
                 embed.set_footer(text="Powered by Danbooru")
-                await ctx.followup.send(embed=embed)
+                await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
         else:
             try:
@@ -83,7 +97,7 @@ class Nijigen(commands.Cog):
                 embed = discord.Embed(title="検索結果", description="オプション: なし")
                 embed.set_image(url=post.media_url)
                 embed.set_footer(text="Powered by Danbooru")
-                await ctx.followup.send(embed=embed)
+                await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     # anime
 
@@ -91,6 +105,18 @@ class Nijigen(commands.Cog):
     @app_commands.checks.cooldown(2, 15)
     @app_commands.describe(image="画像をアップロード")
     async def animesearch(self, ctx: discord.Interaction, image: discord.Attachment):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         await ctx.response.defer()
 
         try:
@@ -116,7 +142,7 @@ class Nijigen(commands.Cog):
             embed = discord.Embed(title="検索結果",
                                   description=f"{len(aninames)}件の候補が見つかりました。\n```{result}```")
             embed.set_footer(text="Powered by Trace.moe")
-            await ctx.followup.send(embed=embed)
+            await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     # クールダウン
 

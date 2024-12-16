@@ -112,7 +112,7 @@ class Web(commands.Cog):
 
     # 5000choen
 
-    @app_commands.command(name="gosen", description="「5000兆円欲しい！」ジェネレーター")
+    @app_commands.command(name="5000", description="「5000兆円欲しい！」ジェネレーター")
     @app_commands.checks.cooldown(2, 15)
     async def gosen_choen(self, ctx: discord.Interaction):
         await ctx.response.send_modal(GosenChoen())

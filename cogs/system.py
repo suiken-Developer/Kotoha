@@ -2,6 +2,7 @@
 import os
 import datetime
 from zoneinfo import ZoneInfo  # JST設定用
+import platform # カーネル取得用
 
 # 外部ライブラリ
 import discord
@@ -32,6 +33,8 @@ VERSION = os.getenv("VERSION")
 class System(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.conn_settings = bot.settings_db_connection
+        self.c_settings = self.conn_settings.cursor()
 
     # Cog読み込み時
     @commands.Cog.listener()
@@ -91,55 +94,115 @@ class System(commands.Cog):
 
     # ping
 
-    @app_commands.command(name="ping", description="AkaneのPingを確認するで")
+    @app_commands.command(name="ping", description="AkaneのPingを確認します")
     async def ping(self, ctx: discord.Interaction):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         embed = discord.Embed(title="Pong!",
                               description=f"`{round(self.bot.latency * 1000, 2)}ms`",
                               color=0xc8ff00)
-        await ctx.response.send_message(embed=embed)
+        await ctx.response.send_message(embed=embed, ephemeral=ephemeral)
 
     # stats
 
-    @app_commands.command(name="stats", description="Akaneのサーバー情報を見る")
+    @app_commands.command(name="stats", description="Akaneのステータスを表示します")
+    @app_commands.checks.cooldown(2, 30)
     async def stats(self, ctx: discord.Interaction):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         await ctx.response.defer()
 
-        embed = discord.Embed(title="サーバー情報",
+        embed = discord.Embed(title="ステータス",
                               description="",
                               color=0xc8ff00)
-        embed.add_field(name="CPU", value=f"使用率: {psutil.cpu_percent(interval=1)}% ({round(psutil.cpu_freq().current / 1000, 2)}GHz)\n"
-                                          f"温度: {psutil.sensors_temperatures()['coretemp'][0].current}℃")
-        embed.add_field(name="RAM", value=f"使用率: {psutil.virtual_memory().percent}% "
-                                          f"({round(psutil.virtual_memory().used / 1024 ** 3, 1)}/"
-                                          f"{round(psutil.virtual_memory().total / 1024 ** 3, 1)}GB)")
-        embed.add_field(name="ストレージ", value=f"使用率: {psutil.disk_usage('/').percent}% "
-                        f"({round(psutil.disk_usage('/').used / 1024 ** 3, 1)}/"
-                        f"{round(psutil.disk_usage('/').total / 1024 ** 3, 1)}GB)")
-        embed.add_field(name="OS", value=f"{distro.name()} {distro.version()}")
-        embed.add_field(name="サーバー起動時刻", value=f"{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')}")
+        embed.add_field(name=":robot: 統計", value=f"サーバー数: **{len(self.bot.guilds):,}**\nユーザー数: **調整中**")
+        embed.add_field(name=":pencil: Botの情報", value=
+                        f"開発者: **{self.bot.OWNER_NAME}**\n"
+                        f"バージョン: **{self.bot.VERSION}**\n"
+                        f"総コード長: **調整中**\nコマンド数: **{self.bot.COMMAND_COUNT:,}**")
+        embed.add_field(name=":desktop: サーバー情報", value=
+                        f"CPU使用率: **{psutil.cpu_percent(interval=1)}% "
+                        f"({round(psutil.cpu_freq().current / 1000, 2)}GHz / {psutil.sensors_temperatures()['coretemp'][0].current}℃)**\n"
+                        f"メモリ使用率: **{psutil.virtual_memory().percent}% "
+                        f"({round(psutil.virtual_memory().used / 1024 ** 3, 1)}/"
+                        f"{round(psutil.virtual_memory().total / 1024 ** 3, 1)}GB)**\n"
+                        f"起動日時: **{datetime.datetime.fromtimestamp(psutil.boot_time()).strftime('%Y/%m/%d %H:%M:%S')} (UTC+9)**\n"
+                        f"discord.py: **v{discord.__version__}**\n"
+                        f"OS: **{distro.name(pretty=True)}**\n"
+                        f"カーネル: **Linux {platform.release()}**")
         embed.set_footer(text=f"データ取得時刻: {datetime.datetime.now(ZoneInfo('Asia/Tokyo')).strftime('%Y/%m/%d %H:%M:%S')}")
-        await ctx.followup.send(embed=embed)
+        await ctx.followup.send(embed=embed, ephemeral=ephemeral)
 
     # invite
 
-    @app_commands.command(name="invite", description="Akaneの招待リンクを表示するで")
-    @app_commands.guilds(785105916130754571)
+    @app_commands.command(name="invite", description="Akaneの招待リンクを表示します")
     async def invite(self, ctx: discord.Interaction):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
         button = discord.ui.Button(label="招待する", style=discord.ButtonStyle.link,
                                    url="https://discord.com/oauth2/authorize?client_id=777557090562474044")
         embed = discord.Embed(title="招待リンク",
-                              description="下のボタンからAkaneを招待できるで！（サーバー管理権限が必要です)",
+                              description="下のボタンからAkaneをサーバーに招待できます\n※サーバー管理権限が必要です",
                               color=0xdda0dd)
         view = discord.ui.View()
         view.add_item(button)
-        await ctx.response.send_message(embed=embed, view=view, ephemeral=True)
+        await ctx.response.send_message(embed=embed, view=view, ephemeral=ephemeral)
+
+    # support
+
+    @app_commands.command(name="support", description="サポートサーバーの招待リンクを表示します")
+    async def support(self, ctx: discord.Interaction):
+        # ephemeral #
+        self.c_settings.execute('SELECT ephemeral FROM user_settings WHERE user_id = ?', (ctx.user.id,))
+        user_setting = self.c_settings.fetchone()
+
+        if user_setting:
+            ephemeral = True if user_setting[0] == 1 else False
+
+        else:
+            ephemeral = 0
+
+        #####
+
+        await ctx.response.send_message("__**サポートサーバー**__\nお問い合わせ・バグ報告・アップデート情報はこちらで配信しています。\n"
+                                        f"以下のリンクより参加できます。\n{self.bot.SUPPORT_SERVER}", ephemeral=ephemeral)
 
     #########################
 
     ''' クールダウン '''
 
     @stats.error
-    async def userinfo_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
+    async def stats_on_command_error(self, ctx: discord.Interaction, error: app_commands.AppCommandError):
         if isinstance(error, app_commands.checks.CommandOnCooldown):
             retry_after_int = int(error.retry_after)
             retry_minute = retry_after_int // 60
