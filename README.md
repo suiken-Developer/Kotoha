@@ -4,7 +4,6 @@
 **[サーバーに招待する](https://discord.com/oauth2/authorize?client_id=777557090562474044)**
 
 Status: https://stats.uptimerobot.com/OLLN9UA6YG
-※現在休止中です
 
 ## 権利表記
 「Akane」（以下、本作品）は、GYARI氏による「琴葉 茜」の二次創作動画「[なんでも言うことを聞いてくれるアカネチャン](https://www.youtube.com/watch?v=OVuYIMa5XBw)」を使用しています。  
