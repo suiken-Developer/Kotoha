@@ -15,11 +15,8 @@ from dotenv import load_dotenv  # python-dotenv
 import simplejson as json  # simplejson
 from discord import app_commands
 
-# 自作ライブラリ
-from server import keep_alive
 
 load_dotenv()  # .env読み込み
-keep_alive()  # Webサーバー起動
 
 intents = discord.Intents.all()
 #intents.message_content = True # (特権) メッセージインテント
