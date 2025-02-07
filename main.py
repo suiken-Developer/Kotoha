@@ -18,9 +18,26 @@ from discord import app_commands
 
 load_dotenv()  # .env読み込み
 
-intents = discord.Intents.all()
-#intents.message_content = True # (特権) メッセージインテント
-#intents.members = True # (特権) メンバーインテント
+intents = discord.Intents.default()
+intents.typing = True
+intents.message_content = True
+intents.dm_messages = True
+intents.dm_reactions = True
+intents.dm_typing = True
+intents.invites = True
+intents.guild_messages = True
+intents.guild_reactions = True
+intents.guild_scheduled_events = True
+intents.guild_typing = True
+intents.webhooks = True
+intents.auto_moderation_configuration = True
+intents.auto_moderation_execution = True
+intents.integrations = True
+
+# ただし、Presence Intent だけは False にしておく
+intents.presences = False
+intents.message_content = True # (特権) メッセージインテント
+intents.members = True # (特権) メンバーインテント
 
 bot = commands.Bot(command_prefix=os.getenv("PREFIX"), intents=intents, help_command=None)
 
